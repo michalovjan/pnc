@@ -35,8 +35,7 @@ public interface UserMapper extends EntityMapper<User, org.jboss.pnc.dto.User, o
     }
 
     @Override
-    @BeanMapping(ignoreUnmappedSourceProperties = {"email", "firstName", "lastName", "loginToken",
-        "buildRecords", "buildConfigurations"})
+    @BeanMapping(ignoreUnmappedSourceProperties = {"email", "firstName", "lastName", "loginToken", "buildRecords"})
     org.jboss.pnc.dto.User toDTO(User dbEntity);
 
 }

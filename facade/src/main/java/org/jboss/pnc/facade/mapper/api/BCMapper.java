@@ -1,6 +1,8 @@
 package org.jboss.pnc.facade.mapper.api;
 
 import org.jboss.pnc.dto.BuildConfigurationRef;
+import org.jboss.pnc.dto.GroupConfigurationRef;
+import org.jboss.pnc.dto.ProductVersionRef;
 import org.jboss.pnc.dto.ProjectRef;
 import org.jboss.pnc.facade.mapper.api.BCMapper.IDMapper;
 import org.jboss.pnc.model.BuildConfiguration;
@@ -13,13 +15,13 @@ import org.mapstruct.Mapping;
  * @author Honza Brázdil &lt;jbrazdil@redhat.com&gt;
  */
 @Mapper(config = MapperCentralConfig.class,
-        uses = {ProjectMapper.class, ProductVersionRefMapper.class, EnvironmentMapper.class,
-            IDMapper.class, SCMRepositoryMapper.class, GroupConfigurationRefMapper.class})
+        uses = {ProjectMapper.class, ProductVersionMapper.class, EnvironmentMapper.class,
+            IDMapper.class, SCMRepositoryMapper.class, GroupConfigurationMapper.class})
 public interface BCMapper extends EntityMapper<BuildConfiguration, org.jboss.pnc.dto.BuildConfiguration, BuildConfigurationRef> {
 
     @Override
     @Mapping(target = "lastModificationTime", source = "modificationTime")
-    @Mapping(target = "buildEnvironment", source = "environment")
+    @Mapping(target = "buildEnvironment", source = "environment", qualifiedBy = IdEntity.class)
     @Mapping(target = "buildConfigurationSets", source = "groupConfigs")
     @Mapping(target = "dependencies", source = "dependencyIds")
     @Mapping(target = "repositoryConfiguration", source = "repository", qualifiedBy = IdEntity.class)
@@ -51,11 +53,12 @@ public interface BCMapper extends EntityMapper<BuildConfiguration, org.jboss.pnc
     
     @Override
     @Mapping(target = "modificationTime", source = "lastModificationTime")
-    @Mapping(target = "environment", source = "buildEnvironment")
-    @Mapping(target = "groupConfigs", source = "buildConfigurationSets")
+    @Mapping(target = "environment", source = "buildEnvironment", qualifiedBy = Reference.class)
+    @Mapping(target = "groupConfigs", source = "buildConfigurationSets", resultType = GroupConfigurationRef.class)
     @Mapping(target = "dependencyIds", source = "dependencies")
     @Mapping(target = "repository", source = "repositoryConfiguration", qualifiedBy = Reference.class)
-    @Mapping(target = "project", qualifiedBy = Reference.class)
+    @Mapping(target = "project", resultType = ProjectRef.class)
+    @Mapping(target = "productVersion", resultType = ProductVersionRef.class)
     @BeanMapping(ignoreUnmappedSourceProperties = {"dependants", "active", "indirectDependencies",
         "allDependencies", "currentProductMilestone", "lastModificationTime", "buildEnvironment",
         "buildConfigurationSets", "dependencies", "repositoryConfiguration"

@@ -28,7 +28,6 @@ public interface ProjectMapper extends EntityMapper<Project, org.jboss.pnc.dto.P
 
     @Override
     @BeanMapping(ignoreUnmappedSourceProperties = {"buildConfigurations"})
-    @Reference
     ProjectRef toRef(Project dbEntity);
     
     @Override

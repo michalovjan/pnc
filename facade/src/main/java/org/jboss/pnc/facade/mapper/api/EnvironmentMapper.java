@@ -12,6 +12,10 @@ import org.mapstruct.Mapper;
 public interface EnvironmentMapper extends EntityMapper<BuildEnvironment, Environment, Environment> {
 
     @Override
+    BuildEnvironment toEntity(Environment dtoEntity);
+
+    @Override
+    @IdEntity
     default BuildEnvironment toIDEntity(Environment dtoEntity) {
         BuildEnvironment entity = new BuildEnvironment();
         entity.setId(dtoEntity.getId());
@@ -19,7 +23,12 @@ public interface EnvironmentMapper extends EntityMapper<BuildEnvironment, Enviro
     }
 
     @Override
-    Environment toRef(BuildEnvironment dbEntity);
+    @Reference
+    default Environment toRef(BuildEnvironment dbEntity) {
+        return toDTO(dbEntity);
+    };
 
-    //TODO remaining two methods, see SCMRepositoryMapper for example
+    @Override
+    Environment toDTO(BuildEnvironment dbEntity);
+
 }
