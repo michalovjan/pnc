@@ -20,13 +20,13 @@ package org.jboss.pnc.coordinator.test;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.pnc.common.concurrent.Sequence;
-import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildTasksInitializer;
+import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
+import org.jboss.pnc.enums.RebuildMode;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.User;
 import org.jboss.pnc.spi.BuildOptions;
-import org.jboss.pnc.enums.RebuildMode;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.datastore.DatastoreException;
@@ -58,7 +58,7 @@ public class ReadDependenciesTest extends ProjectBuilder {
     private DatastoreAdapter datastoreAdapter;
 
     @Inject
-    private BuildQueue buildQueue;
+    private InMemoryBuildQueue buildQueue;
 
     @Inject
     Event<BuildStatusChangedEvent> buildStatusChangedEventNotifier;

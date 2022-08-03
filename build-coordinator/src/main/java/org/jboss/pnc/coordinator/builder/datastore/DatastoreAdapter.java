@@ -19,6 +19,7 @@ package org.jboss.pnc.coordinator.builder.datastore;
 
 import org.jboss.pnc.api.enums.AlignmentPreference;
 import org.jboss.pnc.coordinator.BuildCoordinationException;
+import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.model.Artifact;
 import org.jboss.pnc.model.Base32LongID;
 import org.jboss.pnc.model.BuildConfigSetRecord;
@@ -26,7 +27,6 @@ import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.BuildRecord;
-import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.model.Project;
 import org.jboss.pnc.spi.BuildOptions;
 import org.jboss.pnc.spi.BuildResult;
@@ -44,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.Instant;
@@ -58,8 +57,8 @@ import java.util.stream.Collectors;
 
 import static org.jboss.pnc.enums.BuildStatus.CANCELLED;
 import static org.jboss.pnc.enums.BuildStatus.FAILED;
-import static org.jboss.pnc.enums.BuildStatus.SYSTEM_ERROR;
 import static org.jboss.pnc.enums.BuildStatus.NEW;
+import static org.jboss.pnc.enums.BuildStatus.SYSTEM_ERROR;
 
 /**
  * Created by <a href="mailto:matejonnet@gmail.com">Matej Lazar</a> on 2014-12-15.
@@ -441,10 +440,8 @@ public class DatastoreAdapter {
 
         builder.endTime(buildTask.getEndTime());
 
-        if (buildTask.getBuildConfigSetRecordId() != null) {
-            BuildConfigSetRecord buildConfigSetRecord = datastore
-                    .getBuildConfigSetRecordById(buildTask.getBuildConfigSetRecordId());
-            builder.buildConfigSetRecord(buildConfigSetRecord);
+        if (buildTask.getBuildConfigSetRecord() != null) {
+            builder.buildConfigSetRecord(buildTask.getBuildConfigSetRecord());
         }
 
         List<Base32LongID> dependencies = buildTask.getDependencies()

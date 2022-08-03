@@ -18,19 +18,26 @@
 package org.jboss.pnc.spi.coordinator;
 
 import lombok.Getter;
-
-import org.jboss.pnc.common.pnc.LongBase32IdConverter;
+import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigSetRecord;
 import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.ProductMilestone;
 import org.jboss.pnc.model.User;
-import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.spi.BuildOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.Id;
+import javax.persistence.Index;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
@@ -39,20 +46,26 @@ import java.util.Set;
 /**
  * Created by <a href="mailto:matejonnet@gmail.com">Matej Lazar</a> on 2014-12-23.
  */
+@Entity
+@Table(indexes = @Index(name = "build_task_status_idx", columnList = "status"))
 public class BuildTask {
 
     private static final Logger userLog = LoggerFactory.getLogger("org.jboss.pnc._userlog_.build-task");
 
-    private final String id;
-    private final BuildConfigurationAudited buildConfigurationAudited; // TODO decouple DB entity
+    @Id
+    private String id;
+    private BuildConfigurationAudited buildConfigurationAudited; // TODO decouple DB entity
 
     @Getter
-    private final BuildOptions buildOptions;
+    @ManyToOne
+    private BuildOptions buildOptions;
 
-    private final User user;
-    private final Date submitTime;
 
-    private final String contentId;
+    @ManyToOne
+    private User user;
+    private Date submitTime;
+
+    private String contentId;
 
     private Date startTime;
     private Date endTime;
@@ -63,31 +76,46 @@ public class BuildTask {
     /**
      * A list of builds waiting for this build to complete.
      */
+
+    @OneToMany
     private final Set<BuildTask> dependants = new HashSet<>();
 
     /**
      * The builds which must be completed before this build can start
      */
+    @OneToMany
     private Set<BuildTask> dependencies = new HashSet<>();
 
-    private final BuildSetTask buildSetTask;
+    @ManyToOne
+    private BuildSetTask buildSetTask;
 
+    @ManyToOne
     private ProductMilestone productMilestone;
 
     private boolean hasFailed = false;
 
+    @ManyToOne
+    @Getter
     // called when all dependencies are built
-    private final Integer buildConfigSetRecordId;
+    private BuildConfigSetRecord buildConfigSetRecord;
 
     /**
      * This BR is set when Build Task is not required to be built.
      */
+    @OneToOne
     private BuildRecord noRebuildCause;
 
     /**
      * Request that started the builds
      */
-    private Optional<String> requestContext;
+    private String requestContext;
+
+    @Enumerated(EnumType.STRING)
+    private BuildTaskState state;
+
+    @Deprecated // to make JPA happy
+    public BuildTask() {
+    }
 
     private BuildTask(
             BuildConfigurationAudited buildConfigurationAudited,
@@ -96,7 +124,7 @@ public class BuildTask {
             Date submitTime,
             BuildSetTask buildSetTask,
             String id,
-            Integer buildConfigSetRecordId,
+            BuildConfigSetRecord buildConfigSetRecord,
             ProductMilestone productMilestone,
             String contentId,
             Optional<String> requestContext) {
@@ -108,11 +136,11 @@ public class BuildTask {
         this.submitTime = submitTime;
 
         this.buildSetTask = buildSetTask;
-        this.buildConfigSetRecordId = buildConfigSetRecordId;
+        this.buildConfigSetRecord = buildConfigSetRecord;
         this.productMilestone = productMilestone;
         this.contentId = contentId;
 
-        this.requestContext = requestContext;
+        this.requestContext = requestContext.orElse(null);
     }
 
     public void setStatus(BuildCoordinationStatus status) {
@@ -207,7 +235,7 @@ public class BuildTask {
     }
 
     public Optional<String> getRequestContext() {
-        return requestContext;
+        return Optional.ofNullable(requestContext);
     }
 
     /**
@@ -305,11 +333,9 @@ public class BuildTask {
             String contentId,
             Optional<String> requestContext) {
 
-        Integer buildConfigSetRecordId = null;
+        BuildConfigSetRecord buildConfigSetRecord = null;
         if (buildSetTask != null) {
-            buildConfigSetRecordId = buildSetTask.getBuildConfigSetRecord()
-                    .map(BuildConfigSetRecord::getId)
-                    .orElse(null);
+            buildConfigSetRecord = buildSetTask.getBuildConfigSetRecord().orElse(null);
         }
 
         ProductMilestone milestone = productMilestone;
@@ -328,14 +354,10 @@ public class BuildTask {
                 submitTime,
                 buildSetTask,
                 buildTaskId,
-                buildConfigSetRecordId,
+                buildConfigSetRecord,
                 milestone,
                 contentId,
                 requestContext);
-    }
-
-    public Integer getBuildConfigSetRecordId() {
-        return buildConfigSetRecordId;
     }
 
     public String getContentId() {

@@ -139,6 +139,11 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                 systemConfig.getTemporaryBuildsLifeSpan());
         this.groupBuildMapper = groupBuildMapper;
         this.buildMapper = buildMapper;
+        this.buildQueue.registerTaskReadyCallback(buildTask -> {
+            ProcessStageUtils.logProcessStageEnd(BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES.toString());
+            updateBuildTaskStatus(buildTask, BuildCoordinationStatus.ENQUEUED);
+            ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.ENQUEUED.toString());
+        });
     }
 
     /**
@@ -175,7 +180,6 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                     this::buildRecordIdSupplier,
                     buildQueue.getUnfinishedTasks());
 
-            buildQueue.enqueueTaskSet(buildSetTask);
             buildSetTask.getBuildTasks().stream().sorted(this::dependantsFirst).forEach(this::addTaskToBuildQueue);
 
             return buildSetTask;
@@ -333,7 +337,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             // if the set is rejected stop further processing but process when NO_REBUILD_REQUIRED to create build
             // records
             if (!BuildSetStatus.REJECTED.equals(buildSetTask.getStatus())) {
-                buildQueue.enqueueTaskSet(buildSetTask);
+//                buildQueue.enqueueTaskSet(buildSetTask);
                 List<BuildTask> toSort = new ArrayList<>(buildSetTask.getBuildTasks());
                 // [NCLSUP-393] Don't use default Java Timsort because our Comparator method is not stable. We use
                 // our homemade quicksort instead that doesn't check if our comparator is stable
@@ -399,12 +403,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                 ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.ENQUEUED.toString());
             } else {
                 updateBuildTaskStatus(buildTask, BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES);
-                Runnable onTaskReady = () -> {
-                    ProcessStageUtils.logProcessStageEnd(BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES.toString());
-                    updateBuildTaskStatus(buildTask, BuildCoordinationStatus.ENQUEUED);
-                    ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.ENQUEUED.toString());
-                };
-                buildQueue.addWaitingTask(buildTask, onTaskReady);
+                buildQueue.addWaitingTask(buildTask);
                 ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES.toString());
             }
         } finally {
@@ -869,7 +868,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
 
     private void completeBuildSetTask(BuildSetTask buildSetTask) {
         log.debug("Completing buildSetTask {} ...", buildSetTask);
-        buildQueue.removeSet(buildSetTask);
+//        buildQueue.removeSet(buildSetTask);
         buildSetTask.taskStatusUpdatedToFinalState();
         updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.DONE);
 

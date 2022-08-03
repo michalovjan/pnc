@@ -19,10 +19,10 @@
 package org.jboss.pnc.coordinator.test;
 
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
-import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.coordinator.builder.BuildSchedulerFactory;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
+import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.coordinator.builder.local.LocalBuildScheduler;
 import org.jboss.pnc.mapper.api.BuildMapper;
@@ -57,7 +57,7 @@ public class BuildCoordinatorFactory {
         DatastoreAdapter datastoreAdapter = new DatastoreAdapter(datastore);
 
         SystemConfig systemConfig = createConfiguration();
-        BuildQueue queue = new BuildQueue(systemConfig);
+        InMemoryBuildQueue queue = new InMemoryBuildQueue(systemConfig);
 
         LocalBuildSchedulerMock localBuildScheduler = new LocalBuildSchedulerMock();
 

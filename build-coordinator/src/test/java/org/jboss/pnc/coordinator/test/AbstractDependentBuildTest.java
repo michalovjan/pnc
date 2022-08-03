@@ -23,10 +23,10 @@ import org.jboss.pnc.common.concurrent.Sequence;
 import org.jboss.pnc.common.json.ConfigurationParseException;
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
 import org.jboss.pnc.common.json.moduleprovider.PncConfigProvider;
-import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.coordinator.builder.BuildSchedulerFactory;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
+import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.datastore.DefaultDatastore;
 import org.jboss.pnc.enums.BuildStatus;
@@ -107,7 +107,7 @@ public abstract class AbstractDependentBuildTest {
 
     protected BuildConfigurationRepositoryMock buildConfigurationRepository;
 
-    private BuildQueue buildQueue;
+    private InMemoryBuildQueue buildQueue;
 
     protected BuildCoordinator coordinator;
     protected BuildRecordRepositoryMock buildRecordRepository;
@@ -133,7 +133,7 @@ public abstract class AbstractDependentBuildTest {
         when(systemConfig.getTemporaryBuildsLifeSpan()).thenReturn(1);
         when(config.getModuleConfig(any())).thenReturn(systemConfig);
 
-        buildQueue = new BuildQueue(config.getModuleConfig(new PncConfigProvider<>(SystemConfig.class)));
+        buildQueue = new InMemoryBuildQueue(config.getModuleConfig(new PncConfigProvider<>(SystemConfig.class)));
 
         if (buildConfigurationRepository == null) {
             buildConfigurationRepository = new BuildConfigurationRepositoryMock();

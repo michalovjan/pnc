@@ -37,6 +37,7 @@ import org.jboss.pnc.spi.exception.CoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -67,7 +68,7 @@ public class BuildTasksInitializer {
             User user,
             BuildOptions buildOptions,
             Supplier<String> buildTaskIdProvider,
-            Set<BuildTask> submittedBuildTasks) {
+            Collection<BuildTask> submittedBuildTasks) {
 
         BuildSetTask buildSetTask = BuildSetTask.Builder.newBuilder()
                 .buildOptions(buildOptions)
@@ -202,7 +203,7 @@ public class BuildTasksInitializer {
             User user,
             BuildOptions buildOptions,
             Supplier<String> buildTaskIdProvider,
-            Set<BuildTask> submittedBuildTasks) throws CoreException {
+            Collection<BuildTask> submittedBuildTasks) throws CoreException {
 
         return createBuildSetTask(
                 buildConfigurationSet,
@@ -236,7 +237,7 @@ public class BuildTasksInitializer {
             User user,
             BuildOptions buildOptions,
             Supplier<String> buildTaskIdProvider,
-            Set<BuildTask> submittedBuildTasks) throws CoreException {
+            Collection<BuildTask> submittedBuildTasks) throws CoreException {
         BuildSetTask buildSetTask = initBuildSetTask(buildConfigurationSet, user, buildOptions);
 
         Set<BuildConfigurationAudited> buildConfigurationAuditeds = new HashSet<>();
@@ -306,7 +307,7 @@ public class BuildTasksInitializer {
             Supplier<String> buildTaskIdProvider,
             ProductMilestone productMilestone,
             Set<BuildConfigurationAudited> toBuild,
-            Set<BuildTask> alreadySubmittedBuildTasks,
+            Collection<BuildTask> alreadySubmittedBuildTasks,
             BuildOptions buildOptions) {
         for (BuildConfigurationAudited buildConfigAudited : toBuild) {
             Optional<BuildTask> taskOptional = alreadySubmittedBuildTasks.stream()

@@ -18,19 +18,20 @@
 package org.jboss.pnc.spi.coordinator;
 
 import lombok.Getter;
-
-import org.jboss.pnc.model.BuildConfigSetRecord;
-import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.enums.BuildStatus;
+import org.jboss.pnc.model.BuildConfigSetRecord;
+import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.spi.BuildOptions;
 import org.jboss.pnc.spi.BuildSetStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Transient;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,9 +39,14 @@ import java.util.stream.Collectors;
 /**
  * Created by <a href="mailto:matejonnet@gmail.com">Matej Lazar</a> on 2015-03-26.
  */
+@Entity
 public class BuildSetTask {
 
+    @Transient
     private final Logger log = LoggerFactory.getLogger(BuildCoordinator.class);
+
+    @Id
+    private Long id;
 
     private final Optional<BuildConfigSetRecord> buildConfigSetRecord;
 

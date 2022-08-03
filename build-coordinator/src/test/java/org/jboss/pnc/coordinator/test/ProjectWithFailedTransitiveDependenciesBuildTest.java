@@ -20,7 +20,7 @@ package org.jboss.pnc.coordinator.test;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
-import org.jboss.pnc.coordinator.builder.BuildQueue;
+import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.mock.model.builders.TestProjectConfigurationBuilder;
 import org.jboss.pnc.model.BuildConfigSetRecord;
@@ -46,7 +46,7 @@ public class ProjectWithFailedTransitiveDependenciesBuildTest extends ProjectBui
     @Inject
     BuildCoordinatorFactory buildCoordinatorFactory;
 
-    static BuildQueue buildQueue;
+    static InMemoryBuildQueue buildQueue;
 
     @Deployment
     public static JavaArchive createDeployment() {

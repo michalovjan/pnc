@@ -27,9 +27,9 @@ import org.jboss.pnc.common.json.ConfigurationParseException;
 import org.jboss.pnc.common.json.GlobalModuleGroup;
 import org.jboss.pnc.common.json.moduleconfig.BpmModuleConfig;
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
-import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
+import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.bpm.BpmBuildScheduler;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.enums.BuildStatus;
@@ -66,7 +66,6 @@ import org.slf4j.LoggerFactory;
 import javax.enterprise.event.Event;
 import javax.enterprise.event.NotificationOptions;
 import javax.enterprise.util.TypeLiteral;
-
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -129,7 +128,7 @@ public class CancelledBuildByBpmTest {
         DatastoreAdapter datastoreAdapter = new DatastoreAdapter(datastoreMock);
 
         SystemConfig systemConfig = createConfiguration();
-        BuildQueue queue = new BuildQueue(systemConfig);
+        InMemoryBuildQueue queue = new InMemoryBuildQueue(systemConfig);
 
         BlockingQueue<BuildStatusChangedEvent> receivedStatuses = new ArrayBlockingQueue<>(5);
         Consumer<BuildStatusChangedEvent> onStatusUpdate = receivedStatuses::add;

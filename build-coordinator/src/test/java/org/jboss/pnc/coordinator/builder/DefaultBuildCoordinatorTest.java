@@ -135,7 +135,7 @@ public class DefaultBuildCoordinatorTest {
     @Mock
     private BuildSchedulerFactory buildSchedulerFactory;
 
-    private BuildQueue buildQueue;
+    private InMemoryBuildQueue buildQueue;
     @Mock
     private SystemConfig systemConfig;
     @Mock
@@ -158,7 +158,7 @@ public class DefaultBuildCoordinatorTest {
         when(systemConfig.getTemporaryBuildsLifeSpan()).thenReturn(14);
         when(systemConfig.getCoordinatorThreadPoolSize()).thenReturn(1);
         when(systemConfig.getCoordinatorMaxConcurrentBuilds()).thenReturn(10);
-        buildQueue = new BuildQueue(systemConfig);
+        buildQueue = new InMemoryBuildQueue(systemConfig);
         buildQueue.initSemaphore();
         when(
                 datastore.requiresRebuild(

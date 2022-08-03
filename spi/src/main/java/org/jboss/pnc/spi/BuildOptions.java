@@ -26,6 +26,9 @@ import lombok.ToString;
 import org.jboss.pnc.api.enums.AlignmentPreference;
 import org.jboss.pnc.enums.RebuildMode;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+
 /**
  * Class used to store all available build options of a BuildConfiguration or BuildConfigurationSet
  *
@@ -37,7 +40,10 @@ import org.jboss.pnc.enums.RebuildMode;
 @EqualsAndHashCode
 @Getter
 @Setter
+@Entity
 public class BuildOptions {
+    @Id
+    private Long id;
 
     /**
      * Temporary build or standard build?
