@@ -234,4 +234,34 @@
     <!-- /Test coverage -->
 
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.hibernate.orm.tooling</groupId>
+        <artifactId>hibernate-enhance-maven-plugin</artifactId>
+        <version>${version.org.hibernate.hibernate-core}</version>
+        <executions>
+          <execution>
+            <configuration>
+              <failOnError>true</failOnError>
+              <enableLazyInitialization>true</enableLazyInitialization>
+              <enableDirtyTracking>false</enableDirtyTracking>
+              <enableAssociationManagement>false</enableAssociationManagement>
+            </configuration>
+            <goals>
+              <goal>enhance</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <useIncrementalCompilation>false</useIncrementalCompilation>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -18,6 +18,7 @@
 package org.jboss.pnc.spi.coordinator;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.model.BuildConfigSetRecord;
@@ -27,8 +28,14 @@ import org.jboss.pnc.spi.BuildSetStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Transient;
 import java.util.Date;
 import java.util.HashSet;
@@ -40,18 +47,22 @@ import java.util.stream.Collectors;
  * Created by <a href="mailto:matejonnet@gmail.com">Matej Lazar</a> on 2015-03-26.
  */
 @Entity
+@NoArgsConstructor
 public class BuildSetTask {
 
     @Transient
     private final Logger log = LoggerFactory.getLogger(BuildCoordinator.class);
 
     @Id
+    @GeneratedValue
     private Long id;
 
-    private final Optional<BuildConfigSetRecord> buildConfigSetRecord;
+    @OneToOne
+    private BuildConfigSetRecord buildConfigSetRecord;
 
     @Getter
-    private final BuildOptions buildOptions;
+    @ManyToOne(cascade = { CascadeType.ALL, CascadeType.PERSIST, CascadeType.REFRESH })
+    private BuildOptions buildOptions;
 
     private BuildSetStatus status;
 
@@ -59,18 +70,20 @@ public class BuildSetTask {
 
     private Date startTime;
 
+    // mstodo build set tasks should be updated and checked for being finished independently of tasks being finished!
+    @OneToMany(mappedBy = "buildSetTask", fetch = FetchType.EAGER)
     private final Set<BuildTask> buildTasks = new HashSet<>();
 
     /**
      * Create build set task for running a single build or set of builds
-     * 
+     *
      * @param buildConfigSetRecord The config set record which will be stored to the db
      * @param buildOptions Build parameters
      */
     private BuildSetTask(
             BuildConfigSetRecord buildConfigSetRecord, // TODO decouple datastore entity
             BuildOptions buildOptions) {
-        this.buildConfigSetRecord = Optional.ofNullable(buildConfigSetRecord);
+        this.buildConfigSetRecord = buildConfigSetRecord;
         this.buildOptions = buildOptions;
     }
 
@@ -83,6 +96,7 @@ public class BuildSetTask {
      *
      */
     public void taskStatusUpdatedToFinalState() {
+        Optional<BuildConfigSetRecord> buildConfigSetRecord = Optional.ofNullable(this.buildConfigSetRecord);
         // If any of the build tasks have failed or all are complete, then the build set is done
         if (buildTasks.stream().anyMatch(bt -> bt.getStatus().equals(BuildCoordinationStatus.CANCELLED))) {
             log.debug("Marking build set as CANCELLED as one or more tasks were cancelled. BuildSetTask: {}", this);
@@ -129,7 +143,9 @@ public class BuildSetTask {
     }
 
     private void finishBuildSetTask() {
-        buildConfigSetRecord.ifPresent(r -> r.setEndTime(new Date()));
+        if (buildConfigSetRecord != null) {
+            buildConfigSetRecord.setEndTime(new Date());
+        }
     }
 
     public BuildSetStatus getStatus() {
@@ -158,7 +174,7 @@ public class BuildSetTask {
 
     /**
      * Get the build task which contains the given audited build configuration
-     * 
+     *
      * @param buildConfigurationAudited A BuildConfigurationAudited entity
      * @return The build task with the matching configuration, or null if there is none
      */
@@ -170,11 +186,11 @@ public class BuildSetTask {
     }
 
     public Integer getId() {
-        return buildConfigSetRecord.map(BuildConfigSetRecord::getId).orElse(null);
+        return buildConfigSetRecord != null ? buildConfigSetRecord.getId() : null;
     }
 
     public Optional<BuildConfigSetRecord> getBuildConfigSetRecord() {
-        return buildConfigSetRecord;
+        return Optional.ofNullable(buildConfigSetRecord);
     }
 
     public static class Builder {
@@ -210,6 +226,7 @@ public class BuildSetTask {
             buildSetTask.startTime = this.startTime;
             return buildSetTask;
         }
+
     }
 
     public boolean isFinished() {

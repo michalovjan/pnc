@@ -17,7 +17,6 @@
  */
 package org.jboss.pnc.spi;
 
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,6 +26,7 @@ import org.jboss.pnc.api.enums.AlignmentPreference;
 import org.jboss.pnc.enums.RebuildMode;
 
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
 /**
@@ -35,13 +35,13 @@ import javax.persistence.Id;
  * @author Jakub Bartecek
  */
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString
 @EqualsAndHashCode
 @Getter
 @Setter
 @Entity
 public class BuildOptions {
+    @GeneratedValue
     @Id
     private Long id;
 
@@ -80,5 +80,20 @@ public class BuildOptions {
     @Deprecated
     public boolean isTimestampAlignment() {
         return false;
+    }
+
+    public BuildOptions(
+            boolean temporaryBuild,
+            boolean buildDependencies,
+            boolean keepPodOnFailure,
+            boolean timestampAlignment,
+            RebuildMode rebuildMode,
+            AlignmentPreference alignmentPreference) {
+        this.temporaryBuild = temporaryBuild;
+        this.buildDependencies = buildDependencies;
+        this.keepPodOnFailure = keepPodOnFailure;
+        this.timestampAlignment = timestampAlignment;
+        this.rebuildMode = rebuildMode;
+        this.alignmentPreference = alignmentPreference;
     }
 }

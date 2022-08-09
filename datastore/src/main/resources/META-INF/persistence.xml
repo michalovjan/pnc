@@ -26,6 +26,7 @@
    <persistence-unit name="primary">
        <jta-data-source>@persistence.jta-data-source@</jta-data-source>
        <jar-file>model.jar</jar-file>
+       <jar-file>spi.jar</jar-file> <!--mstodo we should pull out the entities from it!-->
        <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
        <properties>
          <!-- Properties for Hibernate -->

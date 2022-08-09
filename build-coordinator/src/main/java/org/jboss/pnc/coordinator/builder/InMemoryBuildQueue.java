@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import javax.annotation.PostConstruct;
+import javax.enterprise.inject.Vetoed;
 import javax.inject.Inject;
 import java.util.HashSet;
 import java.util.List;
@@ -63,7 +63,9 @@ import java.util.stream.Collectors;
  * <p/>
  * Author: Michal Szynkiewicz, michal.l.szynkiewicz@gmail.com Date: 4/18/16 Time: 12:47 PM
  */
-//@ApplicationScoped
+// @ApplicationScoped
+
+@Vetoed
 public class InMemoryBuildQueue implements BuildQueue {
 
     private final Logger log = LoggerFactory.getLogger(InMemoryBuildQueue.class);
@@ -105,7 +107,6 @@ public class InMemoryBuildQueue implements BuildQueue {
         readyTasks.add(element);
         return true;
     }
-
 
     /**
      * Add a task that is waiting for dependencies
@@ -262,21 +263,21 @@ public class InMemoryBuildQueue implements BuildQueue {
     }
 
     private List<MDCAwareElement<BuildTask>> extractReadyTasks() {
-        List<MDCAwareElement<BuildTask>> noLongerWaitingTasks = waitingTasks
-                .stream()
+        List<MDCAwareElement<BuildTask>> noLongerWaitingTasks = waitingTasks.stream()
                 .filter(e -> e.get().readyToBuild())
                 .collect(Collectors.toList());
 
         noLongerWaitingTasks.forEach(task -> {
             taskReadyCallback.accept(task.get());
-//            waitingTasks.get(task).run();
+            // waitingTasks.get(task).run();
             waitingTasks.remove(task);
         });
 
         return noLongerWaitingTasks;
     }
 
-    @PostConstruct
+    // TODO: uncomment when bringing back as bean
+    // @PostConstruct
     public void initSemaphore() {
         int maxConcurrentBuilds = 10;
         maxConcurrentBuilds = systemConfig.getCoordinatorMaxConcurrentBuilds();
@@ -285,15 +286,17 @@ public class InMemoryBuildQueue implements BuildQueue {
 
     @Override
     public synchronized String toString() {
-        return "BuildQueue{" + "readyTasks=" + readyTasks + ", waitingTasks=" + waitingTasks
-                + ", tasksInProgress=" + tasksInProgress + ", taskSets=" + taskSets + '}';
+        return "BuildQueue{" + "readyTasks=" + readyTasks + ", waitingTasks=" + waitingTasks + ", tasksInProgress="
+                + tasksInProgress + ", taskSets=" + taskSets + '}';
     }
 
+    @Override
     public synchronized boolean isEmpty() {
-        return tasksInProgress.isEmpty() && waitingTasks.isEmpty() && readyTasks.isEmpty()
-                && unfinishedTasks.isEmpty() && taskSets.isEmpty();
+        return tasksInProgress.isEmpty() && waitingTasks.isEmpty() && readyTasks.isEmpty() && unfinishedTasks.isEmpty()
+                && taskSets.isEmpty();
     }
 
+    @Override
     public synchronized String getDebugInfo() {
         String info = "=====================\nQUEUE STATE:\n=====================\n" + "Available build slots: "
                 + availableBuildSlots.availablePermits() + "\n" + "Queue length:" + availableBuildSlots.getQueueLength()
@@ -304,5 +307,11 @@ public class InMemoryBuildQueue implements BuildQueue {
                 + "\n=====================\nTASK SETS:\n=====================\n" + taskSets;
 
         return info;
+    }
+
+    @Override
+    public BuildTask refreshTask(BuildTask task) {
+        // no need to do anything
+        return null;
     }
 }

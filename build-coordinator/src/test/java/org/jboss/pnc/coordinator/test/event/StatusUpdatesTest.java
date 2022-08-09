@@ -23,8 +23,8 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
 import org.jboss.pnc.common.concurrent.Sequence;
 import org.jboss.pnc.common.util.ObjectWrapper;
+import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildTasksInitializer;
-import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.coordinator.notifications.buildSetTask.BuildSetStatusNotifications;
 import org.jboss.pnc.coordinator.notifications.buildTask.BuildCallBack;
@@ -100,7 +100,7 @@ public class StatusUpdatesTest {
     DatastoreAdapter datastoreAdapter;
 
     @Inject
-    InMemoryBuildQueue buildQueue;
+    BuildQueue buildQueue;
 
     @Inject
     Event<BuildSetStatusChangedEvent> buildSetStatusChangedEventNotifier;
@@ -187,7 +187,7 @@ public class StatusUpdatesTest {
 
     /**
      * use Wait.forCondition
-     * 
+     *
      * @param sup
      * @param timeoutSeconds
      */

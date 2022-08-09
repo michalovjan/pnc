@@ -1361,7 +1361,7 @@
             <properties>
               <copyright-years>${project.inceptionYear}-2022</copyright-years>
             </properties>
-            <header>${executionRoot}/.license-header.txt</header>
+            <header>.license-header.txt</header>
             <excludes>
               <exclude>**/README</exclude>
               <exclude>**/LICENSE.txt</exclude>

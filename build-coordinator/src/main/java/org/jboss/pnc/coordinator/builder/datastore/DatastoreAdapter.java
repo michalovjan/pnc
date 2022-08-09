@@ -309,6 +309,7 @@ public class DatastoreAdapter {
             userLog.info("Successfully completed.");
             return datastore.storeCompletedBuild(buildRecordBuilder, builtArtifacts, dependencies);
         } catch (Exception e) {
+            log.error("storing failed build", e); // mstodo remove
             return storeResult(buildTask, Optional.of(buildResult), e);
         }
     }

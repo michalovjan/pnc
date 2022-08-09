@@ -21,7 +21,7 @@ package org.jboss.pnc.coordinator.test;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.pnc.common.util.ObjectWrapper;
-import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
+import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.notifications.buildSetTask.BuildSetCallBack;
 import org.jboss.pnc.coordinator.notifications.buildSetTask.BuildSetStatusNotifications;
 import org.jboss.pnc.enums.BuildStatus;
@@ -74,7 +74,7 @@ public class BuildCoordinationTest {
     BuildCoordinator buildCoordinator;
 
     @Inject
-    InMemoryBuildQueue queue;
+    BuildQueue queue;
 
     @Inject
     TestProjectConfigurationBuilder testProjectConfigurationBuilder;
@@ -193,7 +193,7 @@ public class BuildCoordinationTest {
                 () -> "Did not receive status update to NEW for task set. Received: " + buildSetStatusChangedEvents);
         Wait.forCondition(
                 () -> contains(buildSetStatusChangedEvents, BuildSetStatus.DONE),
-                2000,
+                5000,
                 ChronoUnit.MILLIS,
                 () -> "Did not receive status update to DONE for task set. Received: " + buildSetStatusChangedEvents);
         assertEmptyQueue();

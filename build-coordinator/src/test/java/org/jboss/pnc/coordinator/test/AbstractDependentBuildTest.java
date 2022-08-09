@@ -23,6 +23,7 @@ import org.jboss.pnc.common.concurrent.Sequence;
 import org.jboss.pnc.common.json.ConfigurationParseException;
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
 import org.jboss.pnc.common.json.moduleprovider.PncConfigProvider;
+import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.coordinator.builder.BuildSchedulerFactory;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
@@ -107,7 +108,7 @@ public abstract class AbstractDependentBuildTest {
 
     protected BuildConfigurationRepositoryMock buildConfigurationRepository;
 
-    private InMemoryBuildQueue buildQueue;
+    private BuildQueue buildQueue;
 
     protected BuildCoordinator coordinator;
     protected BuildRecordRepositoryMock buildRecordRepository;
@@ -166,7 +167,9 @@ public abstract class AbstractDependentBuildTest {
                 systemConfig,
                 mock(GroupBuildMapper.class),
                 mock(BuildMapper.class));
-        buildQueue.initSemaphore();
+        if (buildQueue instanceof InMemoryBuildQueue) {
+            ((InMemoryBuildQueue) buildQueue).initSemaphore();
+        }
         coordinator.start();
     }
 

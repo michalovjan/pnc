@@ -135,6 +135,7 @@ public class DefaultBuildCoordinatorTest {
     @Mock
     private BuildSchedulerFactory buildSchedulerFactory;
 
+    // mstodo replace with DB one
     private InMemoryBuildQueue buildQueue;
     @Mock
     private SystemConfig systemConfig;

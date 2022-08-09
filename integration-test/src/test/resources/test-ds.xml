@@ -26,6 +26,7 @@
   <persistence-unit name="primary">
     <jta-data-source>java:jboss/datasources/NewcastleTestDS</jta-data-source>
     <jar-file>model.jar</jar-file>
+    <jar-file>spi.jar</jar-file> <!--mstodo different jar-->
     <properties>
       <!-- Properties for Hibernate -->
       <property name="hibernate.dialect" value="org.hibernate.dialect.HSQLDialect"/>

@@ -17,7 +17,7 @@
  */
 package org.jboss.pnc.rest.endpoints.internal;
 
-import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
+import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.notifications.buildTask.MessageSenderProvider;
 import org.jboss.pnc.dto.Build;
 import org.jboss.pnc.enums.BuildStatus;
@@ -41,7 +41,7 @@ import java.util.Optional;
 public class DebugEndpointImpl implements DebugEndpoint {
 
     @Inject
-    private InMemoryBuildQueue buildQueue;
+    private BuildQueue buildQueue;
 
     @Inject
     private MessageSenderProvider messageSenderProvider;

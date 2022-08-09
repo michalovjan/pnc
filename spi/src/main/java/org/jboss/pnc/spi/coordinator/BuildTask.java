@@ -18,6 +18,7 @@
 package org.jboss.pnc.spi.coordinator;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigSetRecord;
 import org.jboss.pnc.model.BuildConfiguration;
@@ -29,15 +30,18 @@ import org.jboss.pnc.spi.BuildOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
@@ -53,13 +57,16 @@ public class BuildTask {
     private static final Logger userLog = LoggerFactory.getLogger("org.jboss.pnc._userlog_.build-task");
 
     @Id
+    @Setter
     private String id;
-    private BuildConfigurationAudited buildConfigurationAudited; // TODO decouple DB entity
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    private BuildConfiguration buildConfiguration; // TODO decouple DB entity
+    private Integer buildConfigRev;
 
     @Getter
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
     private BuildOptions buildOptions;
-
 
     @ManyToOne
     private User user;
@@ -70,24 +77,32 @@ public class BuildTask {
     private Date startTime;
     private Date endTime;
 
+    @Enumerated(EnumType.STRING)
     private BuildCoordinationStatus status = BuildCoordinationStatus.NEW;
+
+    /**
+     * if true, the task has been taken from the ENQUEUED state tasks to be stared used by the DB backed build queue to
+     * ensure the task is "consumed" only once even in clustered deployment
+     */
+    @Getter
+    @Setter
+    private boolean processed;
     private String statusDescription;
 
     /**
      * A list of builds waiting for this build to complete.
      */
 
-    @OneToMany
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH }, fetch = FetchType.EAGER)
     private final Set<BuildTask> dependants = new HashSet<>();
 
     /**
      * The builds which must be completed before this build can start
      */
-    @OneToMany
+    @ManyToMany(mappedBy = "dependants", fetch = FetchType.EAGER)
     private Set<BuildTask> dependencies = new HashSet<>();
 
-    @ManyToOne
-    private BuildSetTask buildSetTask;
+    private Integer buildSetTaskId;
 
     @ManyToOne
     private ProductMilestone productMilestone;
@@ -110,8 +125,8 @@ public class BuildTask {
      */
     private String requestContext;
 
-    @Enumerated(EnumType.STRING)
-    private BuildTaskState state;
+    @Transient
+    private BuildConfigurationAudited buildConfigurationAudited;
 
     @Deprecated // to make JPA happy
     public BuildTask() {
@@ -130,7 +145,8 @@ public class BuildTask {
             Optional<String> requestContext) {
 
         this.id = id;
-        this.buildConfigurationAudited = buildConfigurationAudited;
+        this.buildConfiguration = buildConfigurationAudited.getBuildConfiguration();
+        this.buildConfigRev = buildConfigurationAudited.getRev();
         this.buildOptions = buildOptions;
         this.user = user;
         this.submitTime = submitTime;
@@ -182,6 +198,11 @@ public class BuildTask {
     }
 
     public BuildConfigurationAudited getBuildConfigurationAudited() {
+        if (this.buildConfigurationAudited == null) { // mstodo remove this.
+            buildConfigurationAudited = BuildConfigurationAudited
+                    .fromBuildConfiguration(buildConfiguration, buildConfigRev);
+        }
+        // mstodo cache it in a transient field
         return buildConfigurationAudited;
     }
 
@@ -198,7 +219,6 @@ public class BuildTask {
             return false;
         }
 
-        BuildConfiguration buildConfiguration = buildConfigurationAudited.getBuildConfiguration();
         if (buildConfiguration == null || buildConfiguration.getAllDependencies() == null) {
             return false;
         }
@@ -218,7 +238,6 @@ public class BuildTask {
             return false;
         }
 
-        BuildConfiguration buildConfiguration = buildConfigurationAudited.getBuildConfiguration();
         if (buildConfiguration == null || buildConfiguration.getDependencies() == null) {
             return false;
         }
@@ -250,12 +269,13 @@ public class BuildTask {
             return false;
         }
         BuildTask buildTask = (BuildTask) o;
-        return buildConfigurationAudited.equals(buildTask.getBuildConfigurationAudited());
+
+        return getBuildConfigurationAudited().equals(buildTask.getBuildConfigurationAudited());
     }
 
     @Override
     public int hashCode() {
-        return buildConfigurationAudited.hashCode();
+        return getBuildConfigurationAudited().hashCode();
     }
 
     public void setStatusDescription(String statusDescription) {
@@ -318,8 +338,8 @@ public class BuildTask {
 
     @Override
     public String toString() {
-        return "Build Task id:" + id + ", name: " + buildConfigurationAudited.getName() + ", project name: "
-                + buildConfigurationAudited.getProject().getName() + ", status: " + status;
+        return "Build Task id:" + id + ", name: " + getBuildConfigurationAudited().getName() + ", project name: "
+                + getBuildConfigurationAudited().getProject().getName() + ", status: " + status;
     }
 
     public static BuildTask build(

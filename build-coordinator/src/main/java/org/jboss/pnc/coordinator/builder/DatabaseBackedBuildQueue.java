@@ -2,13 +2,13 @@
  * JBoss, Home of Professional Open Source.
  * Copyright 2014-2022 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,20 +18,21 @@
 package org.jboss.pnc.coordinator.builder;
 
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
+import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.spi.coordinator.BuildTask;
-import org.jboss.pnc.spi.coordinator.BuildTaskState;
+import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
 import java.util.Collection;
-import java.util.EnumSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
@@ -60,22 +61,23 @@ import java.util.function.Consumer;
  */
 @ApplicationScoped
 public class DatabaseBackedBuildQueue implements BuildQueue {
+    private static final Logger log = LoggerFactory.getLogger(DatabaseBackedBuildQueue.class);
 
-    public static final EnumSet<BuildTaskState> IN_PROGRESS_STATES = EnumSet.of(BuildTaskState.READY, BuildTaskState.WAITING, BuildTaskState.IN_PROGRESS);
-    private final Logger log = LoggerFactory.getLogger(DatabaseBackedBuildQueue.class);
-
+    private static final Set<BuildCoordinationStatus> IN_PROGRESS_STATES = BuildCoordinationStatus.inProgressStates();
+    private static final Set<BuildCoordinationStatus> SUCCESSFUL_FINISH_STATES = BuildCoordinationStatus
+            .successfulFinishStates();
     private SystemConfig systemConfig;
 
-//    private final Set<MDCAwareElement<BuildTask>> unfinishedTasks = new HashSet<>();
+    // private final Set<MDCAwareElement<BuildTask>> unfinishedTasks = new HashSet<>();
 
-//    private final BlockingQueue<MDCAwareElement<BuildTask>> readyTasks = new LinkedBlockingQueue<>();
-//    private final Map<MDCAwareElement<BuildTask>, Runnable> waitingTasksWithCallbacks = new HashMap<>();
-//    private final Set<MDCAwareElement<BuildTask>> tasksInProgress = ConcurrentHashMap.newKeySet();
+    // private final BlockingQueue<MDCAwareElement<BuildTask>> readyTasks = new LinkedBlockingQueue<>();
+    // private final Map<MDCAwareElement<BuildTask>, Runnable> waitingTasksWithCallbacks = new HashMap<>();
+    // private final Set<MDCAwareElement<BuildTask>> tasksInProgress = ConcurrentHashMap.newKeySet();
 
     private final Semaphore availableBuildSlots = new Semaphore(0);
 
     @Inject
-    private EntityManager entityManager;
+    private BuildTaskDatastore datastore;
 
     @Inject
     public DatabaseBackedBuildQueue(SystemConfig systemConfig) {
@@ -94,16 +96,14 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
      *
      * @param task task to be enqueued
      */
-    public synchronized boolean addReadyTask(BuildTask task) {
+    public boolean addReadyTask(BuildTask task) {
         if (!task.readyToBuild()) {
             throw new IllegalArgumentException("a not ready task added to the queue: " + task);
         }
-//        MDCAwareElement element = new MDCAwareElement(task);
-        entityManager.persist(task);
+        // MDCAwareElement element = new MDCAwareElement(task);
+        datastore.persist(task);
 
-//        unfinishedTasks.add(element);
         log.debug("adding task: {}", task);
-//        readyTasks.add(element);
         return true;
     }
 
@@ -113,12 +113,10 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
      * @param task task that is not ready to build
      */
     @Override
-    public synchronized void addWaitingTask(BuildTask task) {
+    public void addWaitingTask(BuildTask task) {
         MDCAwareElement element = new MDCAwareElement(task);
-        entityManager.persist(task);
-//        unfinishedTasks.add(element);
+        datastore.persist(task);
         log.debug("adding waiting task: {}", task);
-//        waitingTasksWithCallbacks.put(element, taskReadyCallback);
     }
 
     /**
@@ -129,23 +127,9 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
      */
     @Override
     public void removeTask(BuildTask task) {
-        log.debug("removing task: {}", task);
-//        MDCAwareElement element = new MDCAwareElement(task);
-        entityManager.remove(task);
-//        if (tasksInProgress.remove(element)) {
-//            availableBuildSlots.release();
-//        }
-//        if (readyTasks.remove(element)) {
-//            log.debug("The task {} has been removed from readyTasks.", task);
-//        }
-//
-//        if (waitingTasksWithCallbacks.remove(element) != null) {
-//            log.debug("The task {} has been removed from waitingTasks.", task);
-//        }
-//
-//        if (unfinishedTasks.remove(element)) {
-//            log.debug("The task {} has been removed from unfinishedTasks.", task);
-//        }
+        log.debug("removing task: {}", task); // mstodo check how it's used?
+        datastore.remove(task);
+        availableBuildSlots.release();
     }
 
     /**
@@ -154,9 +138,13 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
      */
     public synchronized void executeNewReadyTasks() {
         // mstodo just switch tasks to ready?
-//        List<MDCAwareElement<BuildTask>> newReadyTasks = extractReadyTasks();
+        // List<MDCAwareElement<BuildTask>> newReadyTasks = extractReadyTasks();
         log.debug("Ignoring starting new ready tasks.");
-//        readyTasks.addAll(newReadyTasks);
+        List<BuildTask> newReadyTasks = datastore.getNewTasksWithDepsInStates(SUCCESSFUL_FINISH_STATES);
+        for (BuildTask newReadyTask : newReadyTasks) {
+            newReadyTask.setStatus(BuildCoordinationStatus.ENQUEUED);
+            onTaskReady.accept(newReadyTask);
+        }
     }
 
     /**
@@ -167,21 +155,7 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
      *         otherwise
      */
     public Optional<BuildTask> getTask(BuildConfigurationAudited buildConfigAudited) {
-        List<BuildTask> tasks = entityManager.createQuery(
-                        "SELECT task from BuildTask task WHERE task.buildConfigurationAudited = :buildConfig AND task.status in :states",
-                        BuildTask.class)
-                .setParameter("buildConfig", buildConfigAudited)
-                .setParameter("states", IN_PROGRESS_STATES)
-                .getResultList();
-
-        switch (tasks.size()) {
-            case 0:
-                return Optional.empty();
-            case 1:
-                return Optional.of(tasks.get(0));
-            default:
-                throw new IllegalStateException("Multiple build tasks enqueued for buildConfigAudited with id " + buildConfigAudited.getId());
-        }
+        return datastore.getTask(buildConfigAudited, IN_PROGRESS_STATES);
     }
 
     /**
@@ -189,62 +163,55 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
      *
      * @return list of all build tasks in the queue
      */
-    public synchronized List<BuildTask> getSubmittedBuildTasks() {
-        return entityManager.createQuery(
-                        "SELECT task from BuildTask task WHERE task.status in :states",
-                        BuildTask.class)
-                .setParameter("states", IN_PROGRESS_STATES)
-                .getResultList();
+    public List<BuildTask> getSubmittedBuildTasks() {
+        return datastore.getBuildTasksInState(IN_PROGRESS_STATES);
     }
 
     private BuildTask take() throws InterruptedException {
         availableBuildSlots.acquire();
         log.info("Consumer is ready to go, waiting for task");
         while (true) {
-            Optional<BuildTask> task = entityManager.createQuery("SELECT task from BuildTask task WHERE task.status = :state " +
-                            "order by task.id", BuildTask.class)
-                    .setParameter("state", BuildTaskState.READY)
-                    .setMaxResults(1)
-                    .getResultStream()
-                    .findFirst();
+            Optional<BuildTask> task = datastore.getFirstTaskInState(BuildCoordinationStatus.ENQUEUED);
             if (!task.isPresent()) {
-                Thread.sleep(5_000L); // no ready tasks found, retry in a few seconds
-            } else if (grabTask(task.get())) {
-                return task.get();
-            } // else take the next task
+                log.debug("Didn't get a task to start, let's wait and try again in a moment");
+                // mstodo configurable wait
+                Thread.sleep(50L); // no ready tasks found, let's take some rest
+                // and try to find new ready tasks:
+                datastore.transitionWaitingToReadyIfDepsBuilt();
+            } else {
+                log.debug("Got a task to start with id {}, let's try to lock it for starting", task.get().getId());
+                BuildTask grabbedTask = datastore.grabTask(task.get());
+                if (grabbedTask != null) {
+                    log.debug("Successfully locked task with id {} to start", task.get().getId());
+
+                    return grabbedTask;
+                } // else take the next task
+            }
         }
     }
 
-    private boolean grabTask(BuildTask task) {
-        return entityManager.createQuery("UPDATE BuildTask task SET task.status = :state " +
-                        "WHERE task.id = :taskId AND task.state = :startState")
-                .setParameter("startState", BuildTaskState.READY)
-                .setParameter("state", BuildTaskState.IN_PROGRESS)
-                .setParameter("taskId", task.getId())
-                .executeUpdate() == 1;
-    }
-
     public void take(Consumer<BuildTask> consumer) throws InterruptedException {
-//        Map<String, String> copyOfContextMap = MDC.getCopyOfContextMap();
-        BuildTask element = take();
-        log.info("Got task: {}, will start processing", element);
-//        Map<String, String> elementContextMap = element.getContextMap();
-//        try {
-//            if (elementContextMap != null) {
-//                elementContextMap.forEach(MDC::put);
-//            } else {
-//                MDC.clear();
-//            }
-//            consumer.accept(element.get());
-//        } finally {
-//            if (elementContextMap != null) {
-//                elementContextMap.keySet().forEach(MDC::remove);
-//            }
-//            // restore context
-//            if (copyOfContextMap != null) {
-//                MDC.setContextMap(copyOfContextMap);
-//            }
-//        }
+        // Map<String, String> copyOfContextMap = MDC.getCopyOfContextMap();
+        BuildTask task = take();
+        log.info("Got task: {}, will start processing", task);
+        consumer.accept(task);
+        // Map<String, String> elementContextMap = element.getContextMap();
+        // try {
+        // if (elementContextMap != null) {
+        // elementContextMap.forEach(MDC::put);
+        // } else {
+        // MDC.clear();
+        // }
+        // consumer.accept(element.get());
+        // } finally {
+        // if (elementContextMap != null) {
+        // elementContextMap.keySet().forEach(MDC::remove);
+        // }
+        // // restore context
+        // if (copyOfContextMap != null) {
+        // MDC.setContextMap(copyOfContextMap);
+        // }
+        // }
     }
 
     @Override
@@ -252,51 +219,64 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
         this.onTaskReady = onTaskReady;
     }
 
+    @Override
+    public boolean isEmpty() {
+        return datastore.countTasksInState(IN_PROGRESS_STATES) == 0;
+    }
+
+    @Override
+    public String getDebugInfo() {
+        StringBuilder result = new StringBuilder("=====================\nQUEUE STATE:\n=====================\n");
+        List<BuildTask> unfinishedTasks = datastore.getBuildTasksInState(IN_PROGRESS_STATES);
+        unfinishedTasks.sort(Comparator.comparing(BuildTask::getStatus));
+        for (BuildTask task : getUnfinishedTasks()) {
+            result.append('[').append(task.getStatus()).append(']').append(task);
+        }
+        return result.toString();
+    }
+
+    @Override
+    public BuildTask refreshTask(BuildTask task) {
+        return datastore.getTaskWithAllProperties(task);
+    }
+
     public Optional<BuildTask> getUnfinishedTask(BuildConfigurationAudited buildConfigurationAudited) {
         return getTask(buildConfigurationAudited);
-/*        Optional<BuildTask> task = entityManager.createQuery("SELECT task from BuildTask task WHERE task.status = :state " +
-                        "order by task.id", BuildTask.class)
-                .setParameter("state", BuildTaskState.READY)
-                .setMaxResults(1)
-                .getResultStream()
-                .findFirst()
-        return unfinishedTasks.stream()
-                .map(MDCAwareElement::get)
-                .filter(buildTask -> buildTask.getBuildConfigurationAudited().equals(buildConfigurationAudited))
-                .findFirst();*/
+        /*
+         * Optional<BuildTask> task =
+         * entityManager.createQuery("SELECT task from BuildTask task WHERE task.status = :state " + "order by task.id",
+         * BuildTask.class) .setParameter("state", BuildTaskState.READY) .setMaxResults(1) .getResultStream()
+         * .findFirst() return unfinishedTasks.stream() .map(MDCAwareElement::get) .filter(buildTask ->
+         * buildTask.getBuildConfigurationAudited().equals(buildConfigurationAudited)) .findFirst();
+         */
     }
 
     public Collection<BuildTask> getUnfinishedTasks() {
-        return entityManager.createQuery("SELECT task from BuildTask task WHERE task.status in :states " +
-                        "order by task.id", BuildTask.class)
-                .setParameter("states", IN_PROGRESS_STATES)
-                .getResultList();
+        return datastore.getBuildTasksInState(IN_PROGRESS_STATES);
     }
-
 
     @PostConstruct
     public void initSemaphore() {
-        int maxConcurrentBuilds = 10;
-        maxConcurrentBuilds = systemConfig.getCoordinatorMaxConcurrentBuilds();
+        int maxConcurrentBuilds = systemConfig.getCoordinatorMaxConcurrentBuilds();
         availableBuildSlots.release(maxConcurrentBuilds);
     }
 
-//    @Override
-//    public synchronized String toString() {
-//        return "BuildQueue{" + "readyTasks=" + readyTasks + ", waitingTasks=" + waitingTasksWithCallbacks
-//                + ", tasksInProgress=" + tasksInProgress + ", taskSets=" + taskSets + '}';
-//    }
-//
-//    public synchronized String getDebugInfo() {
-//        String info = "=====================\nQUEUE STATE:\n=====================\n" + "Available build slots: "
-//                + availableBuildSlots.availablePermits() + "\n" + "Queue length:" + availableBuildSlots.getQueueLength()
-//                + "\n" + "\n=====================\nTASKS IN PROGRESS:\n=====================\n" + tasksInProgress
-//                + "\n=====================\nREADY TASKS:\n=====================\n" + readyTasks
-//                + "\n=====================\nWAITING TASKS:\n=====================\n"
-//                + waitingTasksWithCallbacks.keySet()
-//                + "\n=====================\nALL UNFINISHED TASKS:\n=====================\n" + unfinishedTasks
-//                + "\n=====================\nTASK SETS:\n=====================\n" + taskSets;
-//
-//        return info;
-//    }
+    // @Override
+    // public synchronized String toString() {
+    // return "BuildQueue{" + "readyTasks=" + readyTasks + ", waitingTasks=" + waitingTasksWithCallbacks
+    // + ", tasksInProgress=" + tasksInProgress + ", taskSets=" + taskSets + '}';
+    // }
+    //
+    // public synchronized String getDebugInfo() {
+    // String info = "=====================\nQUEUE STATE:\n=====================\n" + "Available build slots: "
+    // + availableBuildSlots.availablePermits() + "\n" + "Queue length:" + availableBuildSlots.getQueueLength()
+    // + "\n" + "\n=====================\nTASKS IN PROGRESS:\n=====================\n" + tasksInProgress
+    // + "\n=====================\nREADY TASKS:\n=====================\n" + readyTasks
+    // + "\n=====================\nWAITING TASKS:\n=====================\n"
+    // + waitingTasksWithCallbacks.keySet()
+    // + "\n=====================\nALL UNFINISHED TASKS:\n=====================\n" + unfinishedTasks
+    // + "\n=====================\nTASK SETS:\n=====================\n" + taskSets;
+    //
+    // return info;
+    // }
 }

@@ -67,6 +67,7 @@ import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -78,6 +79,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.jboss.pnc.common.util.CollectionUtils.hasCycle;
 
@@ -139,6 +141,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                 systemConfig.getTemporaryBuildsLifeSpan());
         this.groupBuildMapper = groupBuildMapper;
         this.buildMapper = buildMapper;
+        // mstodo support task ready callback in the DB backed queue
         this.buildQueue.registerTaskReadyCallback(buildTask -> {
             ProcessStageUtils.logProcessStageEnd(BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES.toString());
             updateBuildTaskStatus(buildTask, BuildCoordinationStatus.ENQUEUED);
@@ -190,7 +193,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         if (buildQueue.getUnfinishedTask(buildConfigurationAudited).isPresent()) {
             throw new BuildConflictException(
                     "Active build task found using the same configuration BC [id=" + buildConfigurationAudited.getId()
-                            + ", rev=]" + buildConfigurationAudited.getRev());
+                            + ", rev=" + buildConfigurationAudited.getRev() + "]");
         }
     }
 
@@ -337,7 +340,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             // if the set is rejected stop further processing but process when NO_REBUILD_REQUIRED to create build
             // records
             if (!BuildSetStatus.REJECTED.equals(buildSetTask.getStatus())) {
-//                buildQueue.enqueueTaskSet(buildSetTask);
+                // buildQueue.enqueueTaskSet(buildSetTask);
                 List<BuildTask> toSort = new ArrayList<>(buildSetTask.getBuildTasks());
                 // [NCLSUP-393] Don't use default Java Timsort because our Comparator method is not stable. We use
                 // our homemade quicksort instead that doesn't check if our comparator is stable
@@ -561,7 +564,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             task.setStatus(status);
             task.setStatusDescription(statusDescription);
         }
-
+        task = buildQueue.refreshTask(task);
         Build build = buildMapper.fromBuildTask(task);
         BuildStatusChangedEvent buildStatusChanged = new DefaultBuildStatusChangedEvent(
                 build,
@@ -636,6 +639,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             // check if task is already been build or is currently building
             // in case when task depends on two or more other tasks, all dependents call this method
             // process only tasks with status ENQUEUED
+            // mstodo this is different for db backed queue!
+            // mstodo there building is set at this point, and can only be set once
             synchronized (task) {
                 if (task.getStatus() != BuildCoordinationStatus.ENQUEUED) {
                     log.debug(
@@ -831,6 +836,15 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         BuildSetTask buildSetTask = task.getBuildSetTask();
         if (buildSetTask != null && buildSetTask.isFinished()) {
             completeBuildSetTask(buildSetTask);
+        } else if (buildSetTask != null) {
+            // mstodo remove maybe?
+            log.debug(
+                    "build set task not finished yet, builds: \n\t{}",
+                    buildSetTask.getBuildTasks()
+                            .stream()
+                            .sorted(Comparator.comparing(BuildTask::getStatus))
+                            .map(t -> String.format("%s: [%s]", t.getId(), t.getStatus()))
+                            .collect(Collectors.joining("\n\t")));
         }
     }
 
@@ -868,7 +882,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
 
     private void completeBuildSetTask(BuildSetTask buildSetTask) {
         log.debug("Completing buildSetTask {} ...", buildSetTask);
-//        buildQueue.removeSet(buildSetTask);
+        // buildQueue.removeSet(buildSetTask);
         buildSetTask.taskStatusUpdatedToFinalState();
         updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.DONE);
 
