@@ -195,7 +195,7 @@ public class CancelledBuildTest extends ProjectBuilder {
                 .filter(t -> buildTaskId.equals(t.getId()))
                 .findAny() // got BuildTask
                 .get()
-                .getBuildSetTask() // got BuildConfigSet
+                .getBuildSetTaskId() // got BuildConfigSet
                 .getId();
     }
 }

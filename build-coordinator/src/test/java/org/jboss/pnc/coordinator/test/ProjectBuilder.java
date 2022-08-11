@@ -332,7 +332,7 @@ public class ProjectBuilder {
         List<BuildSetStatus> errorStates = Collections.singletonList(BuildSetStatus.REJECTED);
         if (errorStates.contains(buildSetTask.getStatus())) {
             fail(
-                    "Build " + buildSetTask.getId() + " has status:" + buildSetTask.getStatus() + " with description: "
+                    "Build " + buildSetTask.getBuildConfigSetRecordId() + " has status:" + buildSetTask.getStatus() + " with description: "
                             + buildSetTask.getStatusDescription());
         }
     }

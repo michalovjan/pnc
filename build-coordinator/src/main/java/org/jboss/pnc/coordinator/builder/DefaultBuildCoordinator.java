@@ -67,13 +67,13 @@ import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -400,7 +400,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
 
             log.debug("Adding buildTask {} to buildQueue.", buildTask);
 
-            if (buildTask.readyToBuild()) {
+            if (buildQueue.readyToBuild(buildTask)) {
                 updateBuildTaskStatus(buildTask, BuildCoordinationStatus.ENQUEUED);
                 buildQueue.addReadyTask(buildTask);
                 ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.ENQUEUED.toString());
@@ -475,10 +475,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             return false;
         }
         log.debug("Cancelling Build Configuration Set: {}", buildSetTaskId);
-        getSubmittedBuildTasks().stream()
-                .filter(Objects::nonNull)
-                .filter(t -> t.getBuildSetTask() != null && t.getBuildSetTask().getId().equals(buildSetTaskId))
-                .forEach(buildTask -> {
+        Collection<BuildTask> buildTasks = buildQueue.getBuildSetTasks((long)buildSetTaskId);
+        buildTasks.forEach(buildTask -> {
                     try {
                         MDCUtils.addBuildContext(getMDCMeta(buildTask));
                         log.debug("Received cancel request for buildTaskId: {}.", buildTask.getId());
@@ -535,7 +533,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
 
     private void checkForCyclicDependencies(BuildSetTask buildSetTask) {
         Set<BuildTask> buildTasks = buildSetTask.getBuildTasks();
-        if (hasCycle(buildTasks, BuildTask::getDependencies)) {
+        if (hasCycle(buildTasks, buildQueue::getDependencies)) {
             updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.REJECTED, "Build config set has a cycle");
         }
     }
@@ -597,10 +595,11 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         log.info(
                 "Setting new status {} on buildSetTask.id {}. Description: {}.",
                 status,
-                buildSetTask.getId(),
+                buildSetTask.getBuildConfigSetRecordId(),
                 description);
         BuildSetStatus oldStatus = buildSetTask.getStatus();
-        Optional<BuildConfigSetRecord> buildConfigSetRecord = buildSetTask.getBuildConfigSetRecord();
+        Optional<BuildConfigSetRecord> buildConfigSetRecord =
+                Optional.ofNullable(datastoreAdapter.getBuildCongigSetRecordById(buildSetTask.getBuildConfigSetRecordId()));
 
         // Rejected status needs to be propagated to the BuildConfigSetRecord in database.
         // Completed BuildSets are updated using BuildSetTask#taskStatusUpdatedToFinalState()
@@ -833,7 +832,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                         "Unhandled build task status: " + task.getStatus() + ". Build task: " + task);
         }
 
-        BuildSetTask buildSetTask = task.getBuildSetTask();
+        Long buildSetTaskId = task.getBuildSetTaskId();
+        BuildSetTask buildSetTask = buildQueue.getBuildSetTask(buildSetTaskId);
         if (buildSetTask != null && buildSetTask.isFinished()) {
             completeBuildSetTask(buildSetTask);
         } else if (buildSetTask != null) {
@@ -849,7 +849,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
     }
 
     private void handleErroneousFinish(BuildTask failedTask) {
-        BuildSetTask taskSet = failedTask.getBuildSetTask();
+        Long taskSetId = failedTask.getBuildSetTaskId();
+        BuildSetTask taskSet = buildQueue.getBuildSetTask(taskSetId);
         if (taskSet != null) {
             log.debug("Finishing tasks in set {}, after failedTask {}.", taskSet, failedTask);
             taskSet.getBuildTasks()
@@ -882,8 +883,19 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
 
     private void completeBuildSetTask(BuildSetTask buildSetTask) {
         log.debug("Completing buildSetTask {} ...", buildSetTask);
-        // buildQueue.removeSet(buildSetTask);
-        buildSetTask.taskStatusUpdatedToFinalState();
+        buildQueue.removeSet(buildSetTask); // mstodo
+
+        BuildConfigSetRecord record = datastoreAdapter.getBuildCongigSetRecordById(buildSetTask.getBuildConfigSetRecordId());
+        buildSetTask.taskStatusUpdatedToFinalState(status -> {
+            if (BuildStatus.NO_REBUILD_REQUIRED == record.getStatus() && status == BuildStatus.SUCCESS) {
+                log.debug("Build set already marked as NO_REBUILD_REQUIRED. BuildSetTask: {}", this);
+            } else {
+                log.debug("Marking build set as SUCCESS. BuildSetTask: {}", this);
+                record.setStatus(BuildStatus.SUCCESS);
+            }
+            record.setStatus(status);
+            record.setEndTime(new Date());
+        });
         updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.DONE);
 
         buildSetTask.getBuildConfigSetRecord().ifPresent(r -> {

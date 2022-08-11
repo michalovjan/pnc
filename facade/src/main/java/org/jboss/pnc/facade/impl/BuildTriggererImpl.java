@@ -28,7 +28,6 @@ import org.jboss.pnc.facade.providers.GenericSettingProvider;
 import org.jboss.pnc.facade.util.HibernateLazyInitializer;
 import org.jboss.pnc.facade.util.UserService;
 import org.jboss.pnc.facade.validation.InvalidEntityException;
-import org.jboss.pnc.mapper.api.BuildMapper;
 import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildConfigurationSet;
@@ -115,7 +114,7 @@ public class BuildTriggererImpl implements BuildTriggerer {
         throwCoreExceptionIfInMaintenanceModeAndNonSystemUser();
 
         BuildSetTask result = doTriggerGroupBuild(groupConfigId, revs, buildOptions);
-        return result.getId();
+        return result.getBuildConfigSetRecordId();
     }
 
     @Override

@@ -19,6 +19,7 @@ package org.jboss.pnc.spi.datastore;
 
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
+import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.coordinator.BuildTask;
 
 import java.util.List;
@@ -35,6 +36,8 @@ public interface BuildTaskDatastore {
 
     void remove(BuildTask task);
 
+    BuildTask getTask(String id);
+
     Optional<BuildTask> getTask(BuildConfigurationAudited buildConfigAudited, Set<BuildCoordinationStatus> states);
 
     List<BuildTask> getBuildTasksInState(Set<BuildCoordinationStatus> states);
@@ -50,4 +53,10 @@ public interface BuildTaskDatastore {
     void transitionWaitingToReadyIfDepsBuilt();
 
     BuildTask getTaskWithAllProperties(BuildTask task);
+
+    boolean areDependenciesBuilt(BuildTask task);
+
+    BuildSetTask getBuildSetTask(Long buildSetTaskId);
+
+    void remove(BuildSetTask buildSetTask);
 }

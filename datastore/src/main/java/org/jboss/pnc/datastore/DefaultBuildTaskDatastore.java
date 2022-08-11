@@ -19,6 +19,7 @@ package org.jboss.pnc.datastore;
 
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
+import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.slf4j.Logger;
@@ -55,6 +56,13 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
     public void remove(BuildTask task) {
         log.info("removing task " + task.getId());
         entityManager.createQuery("DELETE FROM BuildTask t where t.id = :taskId").setParameter("taskId", task.getId());
+    }
+
+    @Override
+    public BuildTask getTask(String id) {
+        return entityManager.createQuery("SELECT t FROM BuildTask t WHERE t.id = :taskId", BuildTask.class)
+                .setParameter("taskId", id)
+                .getSingleResult();
     }
 
     @Override
@@ -131,11 +139,12 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
                 .getSingleResult();
     }
 
+    // mstodo
     @Override
     public List<BuildTask> getNewTasksWithDepsInStates(Set<BuildCoordinationStatus> states) {
         return entityManager
                 .createQuery(
-                        "select t from BuildTask t join t.dependencies dep "
+                        "select t from BuildTask t join t.dependencies d join BuildTask dep on dep.id = d "
                                 + "where dep.status in :successful_finish_states and t.status = :task_state "
                                 + "group by t.id " + "having count(dep) = 0",
                         BuildTask.class)
@@ -148,9 +157,9 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
     public void transitionWaitingToReadyIfDepsBuilt() {
         entityManager
                 .createQuery(
-                        "update BuildTask t set t.status = :targetState " + "where t.status = :currentState and 0 = ("
-                                + "   select count(d.id) from t.dependencies d where d.status in :unfinishedStates"
-                                + ")")
+                        "update BuildTask t set t.status = :targetState where t.status = :currentState and 0 = ("
+                                + "   select count(d) from t.dependencies d join BuildTask depTask on depTask.id = d " +
+                                "where depTask.status in :unfinishedStates)")
                 .setParameter("targetState", BuildCoordinationStatus.ENQUEUED)
                 .setParameter("currentState", BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES)
                 .setParameter("unfinishedStates", UNFINISHED_OR_FAILED_STATES)
@@ -176,5 +185,25 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
             default:
                 throw new IllegalStateException("Multiple tasks with id " + task.getId() + " found in the DB");
         }
+    }
+
+    @Override
+    public boolean areDependenciesBuilt(BuildTask task) {
+        return entityManager.createQuery("select count(d) from BuildTask t join t.dependencies d join BuildTask depTask on depTask.id = d " +
+                                               "where depTask.status in :unfinishedStates", Integer.class)
+                .getSingleResult() == 0;
+    }
+
+    @Override
+    public BuildSetTask getBuildSetTask(Long buildSetTaskId) {
+        return entityManager.createQuery(
+                "select ts from BuildSetTask ts join fetch ts.buildTasks where id = :setId", BuildSetTask.class)
+                .setParameter("setId", buildSetTaskId)
+                .getSingleResult();
+    }
+
+    @Override
+    public void remove(BuildSetTask buildSetTask) {
+        entityManager.remove(buildSetTask); // mstodo probly needed removal by ID
     }
 }

@@ -35,12 +35,12 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.Transient;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -57,8 +57,8 @@ public class BuildSetTask {
     @GeneratedValue
     private Long id;
 
-    @OneToOne
-    private BuildConfigSetRecord buildConfigSetRecord;
+    @Getter
+    private Integer buildConfigSetRecordId;
 
     @Getter
     @ManyToOne(cascade = { CascadeType.ALL, CascadeType.PERSIST, CascadeType.REFRESH })
@@ -83,7 +83,7 @@ public class BuildSetTask {
     private BuildSetTask(
             BuildConfigSetRecord buildConfigSetRecord, // TODO decouple datastore entity
             BuildOptions buildOptions) {
-        this.buildConfigSetRecord = buildConfigSetRecord;
+        this.buildConfigSetRecordId = buildConfigSetRecord.getId();
         this.buildOptions = buildOptions;
     }
 
@@ -95,34 +95,23 @@ public class BuildSetTask {
      * Notify the set that the state of one of it's tasks has changed.
      *
      */
-    public void taskStatusUpdatedToFinalState() {
-        Optional<BuildConfigSetRecord> buildConfigSetRecord = Optional.ofNullable(this.buildConfigSetRecord);
+    public void taskStatusUpdatedToFinalState(Consumer<BuildStatus> buildSetStatusChangeListener) {
         // If any of the build tasks have failed or all are complete, then the build set is done
         if (buildTasks.stream().anyMatch(bt -> bt.getStatus().equals(BuildCoordinationStatus.CANCELLED))) {
             log.debug("Marking build set as CANCELLED as one or more tasks were cancelled. BuildSetTask: {}", this);
             if (log.isDebugEnabled()) {
                 logTasksStatus(buildTasks);
             }
-            buildConfigSetRecord.ifPresent(r -> r.setStatus(BuildStatus.CANCELLED));
-            finishBuildSetTask();
+            buildSetStatusChangeListener.accept(BuildStatus.CANCELLED);
         } else if (buildTasks.stream().anyMatch(bt -> bt.getStatus().hasFailed())) {
             log.debug("Marking build set as FAILED as one or more tasks failed. BuildSetTask: {}", this);
             if (log.isDebugEnabled()) {
                 logTasksStatus(buildTasks);
             }
-            buildConfigSetRecord.ifPresent(r -> r.setStatus(BuildStatus.FAILED));
-            finishBuildSetTask();
+            buildSetStatusChangeListener.accept(BuildStatus.FAILED);
         } else if (buildTasks.stream().allMatch(bt -> bt.getStatus().isCompleted())) {
             log.debug("All builds in set completed. BuildSetTask: {}", this);
-            buildConfigSetRecord.ifPresent(r -> {
-                if (BuildStatus.NO_REBUILD_REQUIRED.equals(r.getStatus())) {
-                    log.debug("Build set already marked as NO_REBUILD_REQUIRED. BuildSetTask: {}", this);
-                } else {
-                    log.debug("Marking build set as SUCCESS. BuildSetTask: {}", this);
-                    r.setStatus(BuildStatus.SUCCESS);
-                }
-            });
-            finishBuildSetTask();
+            buildSetStatusChangeListener.accept(BuildStatus.SUCCESS);
         } else {
             if (log.isTraceEnabled()) {
                 String running = buildTasks.stream()
@@ -140,12 +129,6 @@ public class BuildSetTask {
                 .map(bt -> "TaskId " + bt.getId() + ":" + bt.getStatus())
                 .collect(Collectors.joining("; "));
         log.debug("Tasks statuses: {}", taskStatuses);
-    }
-
-    private void finishBuildSetTask() {
-        if (buildConfigSetRecord != null) {
-            buildConfigSetRecord.setEndTime(new Date());
-        }
     }
 
     public BuildSetStatus getStatus() {
@@ -185,8 +168,8 @@ public class BuildSetTask {
                 .orElse(null);
     }
 
-    public Integer getId() {
-        return buildConfigSetRecord != null ? buildConfigSetRecord.getId() : null;
+    public Long getId() {
+        return id;
     }
 
     public Optional<BuildConfigSetRecord> getBuildConfigSetRecord() {

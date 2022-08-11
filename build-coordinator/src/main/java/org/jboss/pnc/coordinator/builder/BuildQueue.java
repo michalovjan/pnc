@@ -18,6 +18,7 @@
 package org.jboss.pnc.coordinator.builder;
 
 import org.jboss.pnc.model.BuildConfigurationAudited;
+import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.coordinator.BuildTask;
 
 import java.util.Collection;
@@ -55,4 +56,15 @@ public interface BuildQueue {
     String getDebugInfo();
 
     BuildTask refreshTask(BuildTask task);
+
+    boolean readyToBuild(BuildTask buildTask);
+
+    List<BuildTask> getDependencies(BuildTask task);
+
+    // mstodo set to integer all over the place
+    Collection<BuildTask> getBuildSetTasks(Long buildSetTaskId);
+
+    BuildSetTask getBuildSetTask(Long buildSetTaskId);
+
+    void removeSet(BuildSetTask buildSetTask);
 }

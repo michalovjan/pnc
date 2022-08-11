@@ -17,57 +17,8 @@
  */
 package org.jboss.pnc.facade.providers;
 
-import static java.lang.Math.min;
-import static org.jboss.pnc.common.util.StreamHelper.nullableStreamOf;
-import static org.jboss.pnc.facade.providers.api.UserRoles.SYSTEM_USER;
-import static org.jboss.pnc.spi.datastore.predicates.ArtifactPredicates.withIds;
-import static org.jboss.pnc.spi.datastore.predicates.BuildConfigurationPredicates.withProjectId;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.buildFinishedBefore;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.temporaryBuild;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withArtifactDependency;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withArtifactProduced;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withAttribute;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigSetId;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigSetRecordId;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigurationId;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigurationIds;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withPerformedInMilestone;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withUserId;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withoutAttribute;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withoutImplicitDependants;
-import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withoutLinkedNRRRecordOlderThanTimestamp;
-
-import java.math.BigInteger;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.TreeSet;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
-import javax.ejb.EJBAccessException;
-import javax.ejb.Stateless;
-import javax.inject.Inject;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.Getter;
 import org.jboss.pnc.common.gerrit.Gerrit;
 import org.jboss.pnc.common.gerrit.GerritException;
 import org.jboss.pnc.common.graph.GraphBuilder;
@@ -110,8 +61,10 @@ import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.IdRev;
 import org.jboss.pnc.model.User;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
+import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.coordinator.Result;
+import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates;
 import org.jboss.pnc.spi.datastore.repositories.ArtifactRepository;
 import org.jboss.pnc.spi.datastore.repositories.BuildConfigSetRecordRepository;
@@ -128,9 +81,57 @@ import org.jboss.util.graph.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
+import javax.ejb.EJBAccessException;
+import javax.ejb.Stateless;
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.TreeSet;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import lombok.Getter;
+import static java.lang.Math.min;
+import static org.jboss.pnc.common.util.StreamHelper.nullableStreamOf;
+import static org.jboss.pnc.facade.providers.api.UserRoles.SYSTEM_USER;
+import static org.jboss.pnc.spi.datastore.predicates.ArtifactPredicates.withIds;
+import static org.jboss.pnc.spi.datastore.predicates.BuildConfigurationPredicates.withBuildConfigurationSetId;
+import static org.jboss.pnc.spi.datastore.predicates.BuildConfigurationPredicates.withProjectId;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.buildFinishedBefore;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.temporaryBuild;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withArtifactDependency;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withArtifactProduced;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withAttribute;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigSetId;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigSetRecordId;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigurationId;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withBuildConfigurationIds;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withPerformedInMilestone;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withUserId;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withoutAttribute;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withoutImplicitDependants;
+import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.withoutLinkedNRRRecordOlderThanTimestamp;
 
 @PermitAll
 @Stateless
@@ -149,6 +150,7 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
     private BuildConfigurationRevisionMapper buildConfigurationRevisionMapper;
     private BuildMapper buildMapper;
 
+    private final BuildTaskDatastore buildTaskDatastore;
     private BuildCoordinator buildCoordinator;
     private SortInfoProducer sortInfoProducer;
     private UserService userService;
@@ -170,7 +172,8 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
             SortInfoProducer sortInfoProducer,
             UserService userService,
             TemporaryBuildsCleanerAsyncInvoker temporaryBuildsCleanerAsyncInvoker,
-            ResultMapper resultMapper) {
+            ResultMapper resultMapper,
+            BuildTaskDatastore buildTaskDatastore) {
         super(repository, mapper, BuildRecord.class);
 
         this.artifactRepository = artifactRepository;
@@ -186,6 +189,7 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
         this.userService = userService;
         this.temporaryBuildsCleanerAsyncInvoker = temporaryBuildsCleanerAsyncInvoker;
         this.resultMapper = resultMapper;
+        this.buildTaskDatastore = buildTaskDatastore;
     }
 
     @Override
@@ -420,7 +424,23 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
 
     @Override
     public Page<Build> getBuildsForGroupConfiguration(BuildPageInfo pageInfo, String groupConfigurationId) {
-        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTask() != null && t.getBuildSetTask()
+        if (pageInfo.isRunning()) {
+            if (pageInfo.isLatest()) {
+                buildQueue.getLatestRunningBuildForGroupConfig(groupConfigurationId);
+            } else {
+                buildQueue.getRunningBuildsForGroupConfig(groupConfigurationId, pageInfo.getPageSize(),
+                        pageInfo.getPageIndex(), pageInfo.getSort(), pageInfo.getQ());
+            }
+        } else {
+            buildQueue.getRunningBuildsForGroupConfig(groupConfigurationId, pageInfo.getPageSize(),
+                    pageInfo.getPageIndex(), pageInfo.getSort(), pageInfo.getQ());
+            return getStoredBuildList(pageInfo, withBuildConfigurationSetId(Integer.valueOf(groupConfigurationId)));
+        }
+        List<Long> buildSetTaskIds = buildTaskDatastore.getBuildSetTaskByConfigSetId(groupConfigurationId)
+                .stream()
+                .map(BuildSetTask::getId)
+                .collect(Collectors.toList());
+        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTaskId() != null && t.getBuildSetTaskId()
                 .getBuildConfigSetRecord()
                 .map(gc -> Integer.valueOf(groupConfigurationId).equals(gc.getBuildConfigurationSet().getId()))
                 .orElse(false);
@@ -429,7 +449,7 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
 
     @Override
     public Page<Build> getBuildsForGroupBuild(BuildPageInfo pageInfo, String groupBuildId) {
-        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTask() != null && t.getBuildSetTask()
+        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTaskId() != null && t.getBuildSetTaskId()
                 .getBuildConfigSetRecord()
                 .map(gc -> Integer.valueOf(groupBuildId).equals(gc.getId()))
                 .orElse(false);
@@ -464,16 +484,15 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
      * @return Running and completed build ids from the Build Group.
      */
     private List<String> getBuildIdsInTheGroup(BuildConfigSetRecord buildConfigSetRecord) {
-        List<String> runningTaskIds = nullableStreamOf(buildCoordinator.getSubmittedBuildTasks())
-                .filter(Objects::nonNull)
-                .filter(
-                        t -> t.getBuildSetTask() != null
-                                && buildConfigSetRecord.getId().equals(t.getBuildSetTask().getId()))
-                .sorted(Comparator.comparing(bt -> bt.getBuildConfigurationAudited().getName()))
-                .map(t -> t.getId())
-                .collect(Collectors.toList());
-
-        List<String> runningAndStoredIds = new ArrayList<>(runningTaskIds);
+        BuildSetTask buildSetTask = buildCoordinator.getSubmittedBuildSetTaskByConfigSet(buildConfigSetRecord.getId());
+        List<String> runningAndStoredIds = new ArrayList<>();
+        if (buildSetTask != null) {
+            buildSetTask.getBuildTasks()
+                    .stream()
+                    .sorted(Comparator.comparing(bt -> bt.getBuildConfigurationAudited().getName()))
+                    .map(BuildTask::getId)
+                    .forEach(runningAndStoredIds::add);
+        }
 
         Set<String> storedBuildIds = buildConfigSetRecord.getBuildRecords()
                 .stream()
@@ -885,9 +904,9 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
      */
     private Page<Build> getBuilds(
             BuildPageInfo pageInfo,
-            java.util.function.Predicate<BuildTask> predicate,
+            Supplier<List<Build>> runningBuildsSupplier,
             Predicate<BuildRecord> dbPredicate) {
-        List<Build> runningBuilds = readRunningBuilds(pageInfo, predicate);
+        List<Build> runningBuilds = runningBuildsSupplier.get();
 
         int firstPossibleDBIndex = pageInfo.getPageIndex() * pageInfo.getPageSize() - runningBuilds.size();
         int lastPossibleDBIndex = (pageInfo.getPageIndex() + 1) * pageInfo.getPageSize() - 1;

@@ -20,6 +20,7 @@ package org.jboss.pnc.coordinator.builder;
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
+import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 //mstodo
 
@@ -97,7 +99,7 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
      * @param task task to be enqueued
      */
     public boolean addReadyTask(BuildTask task) {
-        if (!task.readyToBuild()) {
+        if (!datastore.areDependenciesBuilt(task)) { // mstodo implement here
             throw new IllegalArgumentException("a not ready task added to the queue: " + task);
         }
         // MDCAwareElement element = new MDCAwareElement(task);
@@ -238,6 +240,34 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     @Override
     public BuildTask refreshTask(BuildTask task) {
         return datastore.getTaskWithAllProperties(task);
+    }
+
+    @Override
+    public boolean readyToBuild(BuildTask buildTask) {
+        return false;
+    }
+
+    @Override
+    public List<BuildTask> getDependencies(BuildTask task) {
+        return task.getDependencies()
+                .stream().map(datastore::getTask)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Collection<BuildTask> getBuildSetTasks(Long buildSetTaskId) {
+        BuildSetTask set = datastore.getBuildSetTask(buildSetTaskId);
+        return set.getBuildTasks();
+    }
+
+    @Override
+    public BuildSetTask getBuildSetTask(Long buildSetTaskId) {
+        return datastore.getBuildSetTask(buildSetTaskId);
+    }
+
+    @Override
+    public void removeSet(BuildSetTask buildSetTask) {
+        datastore.remove(buildSetTask);
     }
 
     public Optional<BuildTask> getUnfinishedTask(BuildConfigurationAudited buildConfigurationAudited) {

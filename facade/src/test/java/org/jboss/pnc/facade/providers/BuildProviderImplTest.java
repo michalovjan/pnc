@@ -68,11 +68,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -88,7 +86,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
@@ -563,7 +560,7 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
     @Test
     public void shouldGetGraphWithDependencies() {
         // With
-        Integer buildSetTaskId = 1;
+        long buildSetTaskId = 1L;
         BuildSetTask buildSetTask = mock(BuildSetTask.class);
         when(buildSetTask.getId()).thenReturn(buildSetTaskId);
 
@@ -571,11 +568,11 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
         BuildTask taskDep = mockBuildTaskWithSet(buildSetTask);
         BuildTask taskDepDep = mockBuildTaskWithSet(buildSetTask);
 
-        when(task.getDependencies()).thenReturn(asSet(taskDep));
-        when(taskDep.getDependencies()).thenReturn(asSet(taskDepDep));
+        when(task.getDependencies()).thenReturn(Collections.singleton(taskDep.getId()));
+        when(taskDep.getDependencies()).thenReturn(Collections.singleton(taskDepDep.getId()));
 
         // When
-        Graph<Build> graph = provider.getBuildGraphForGroupBuild(Integer.toString(buildSetTaskId));
+        Graph<Build> graph = provider.getBuildGraphForGroupBuild(Long.toString(buildSetTaskId));
 
         // Then
         assertThat(graph.getVertices()).hasSize(3);
@@ -606,7 +603,7 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
         BuildTask bt110000 = mock(BuildTask.class);
         when(bt110000.getId()).thenReturn("110000");
         when(bt110000.getDependencies()).thenReturn(Collections.emptySet());
-        when(bt110000.getDependants()).thenReturn(Collections.singleton(bt100002));
+        when(bt110000.getDependants()).thenReturn(Collections.singleton(bt100002.getId()));
         runningBuilds.add(bt110000);
 
         mockBuildRecord(new Base32LongID(100000L), new Long[] { 100002L }, new Long[] {});
@@ -713,7 +710,7 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
 
     private BuildTask mockBuildTaskWithSet(BuildSetTask buildSetTask) {
         BuildTask task = mockBuildTask();
-        when(task.getBuildSetTask()).thenReturn(buildSetTask);
+        when(task.getBuildSetTaskId()).thenReturn(buildSetTask.getId());
         when(task.getUser()).thenReturn(mock(User.class));
         return task;
     }

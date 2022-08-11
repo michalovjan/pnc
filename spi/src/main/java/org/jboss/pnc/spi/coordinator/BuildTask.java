@@ -31,13 +31,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.CascadeType;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.Index;
-import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
@@ -93,16 +93,21 @@ public class BuildTask {
      * A list of builds waiting for this build to complete.
      */
 
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH }, fetch = FetchType.EAGER)
-    private final Set<BuildTask> dependants = new HashSet<>();
+//    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH }, fetch = FetchType.EAGER)
+
+    @ElementCollection
+    private final Set<String> dependants = new HashSet<>();
 
     /**
      * The builds which must be completed before this build can start
      */
-    @ManyToMany(mappedBy = "dependants", fetch = FetchType.EAGER)
-    private Set<BuildTask> dependencies = new HashSet<>();
+//    @ManyToMany(mappedBy = "dependants", fetch = FetchType.EAGER)
+    @ElementCollection
+    private Set<String> dependencies = new HashSet<>();
 
-    private Integer buildSetTaskId;
+    private Long buildSetTaskId;
+
+    private Integer buildConfigSetRecordId; //mstodo
 
     @ManyToOne
     private ProductMilestone productMilestone;
@@ -151,7 +156,7 @@ public class BuildTask {
         this.user = user;
         this.submitTime = submitTime;
 
-        this.buildSetTask = buildSetTask;
+        this.buildSetTaskId = buildSetTask.getId();
         this.buildConfigSetRecord = buildConfigSetRecord;
         this.productMilestone = productMilestone;
         this.contentId = contentId;
@@ -168,18 +173,18 @@ public class BuildTask {
         return productMilestone;
     }
 
-    public Set<BuildTask> getDependencies() {
+    public Set<String> getDependencies() {
         return dependencies;
     }
 
     public void addDependency(BuildTask buildTask) {
         if (!dependencies.contains(buildTask)) {
-            dependencies.add(buildTask);
-            buildTask.addDependant(this);
+            dependencies.add(buildTask.getId());
+            dependants.add(buildTask.getId());
         }
     }
 
-    public Set<BuildTask> getDependants() {
+    public Set<String> getDependants() {
         return dependants;
     }
 
@@ -244,13 +249,6 @@ public class BuildTask {
 
         return buildConfiguration.getDependencies()
                 .contains(buildTask.getBuildConfigurationAudited().getBuildConfiguration());
-    }
-
-    public void addDependant(BuildTask buildTask) {
-        if (!dependants.contains(buildTask)) {
-            dependants.add(buildTask);
-            buildTask.addDependency(this);
-        }
     }
 
     public Optional<String> getRequestContext() {
@@ -318,23 +316,23 @@ public class BuildTask {
         return user;
     }
 
-    public BuildSetTask getBuildSetTask() {
-        return buildSetTask;
+    public Long getBuildSetTaskId() {
+        return buildSetTaskId;
     }
-
-    /**
+/*mstodo remove
+    *//**
      * Check if this build is ready to build, for example if all dependency builds are complete.
      *
      * @return true if already built, false otherwise
-     */
+     *//*
     public boolean readyToBuild() {
-        for (BuildTask buildTask : dependencies) {
+        for (String buildTask : dependencies) {
             if (!buildTask.getStatus().isCompleted()) {
                 return false;
             }
         }
         return true;
-    }
+    }*/
 
     @Override
     public String toString() {
