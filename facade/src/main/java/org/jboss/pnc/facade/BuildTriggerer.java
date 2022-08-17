@@ -19,7 +19,7 @@ package org.jboss.pnc.facade;
 
 import org.jboss.pnc.common.logging.BuildTaskContext;
 import org.jboss.pnc.dto.requests.GroupBuildRequest;
-import org.jboss.pnc.spi.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.spi.exception.BuildConflictException;
 import org.jboss.pnc.spi.exception.CoreException;
 

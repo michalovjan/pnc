@@ -19,8 +19,8 @@ package org.jboss.pnc.mock.datastore;
 
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
-import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 
 import java.util.ArrayList;

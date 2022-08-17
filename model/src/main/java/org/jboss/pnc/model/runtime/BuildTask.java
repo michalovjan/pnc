@@ -2,20 +2,20 @@
  * JBoss, Home of Professional Open Source.
  * Copyright 2014-2022 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.pnc.spi.coordinator;
+package org.jboss.pnc.model.runtime;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -26,20 +26,18 @@ import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.ProductMilestone;
 import org.jboss.pnc.model.User;
-import org.jboss.pnc.spi.BuildOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.CascadeType;
-import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.util.Date;
@@ -65,7 +63,7 @@ public class BuildTask {
     private Integer buildConfigRev;
 
     @Getter
-    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
+    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
     private BuildOptions buildOptions;
 
     @ManyToOne
@@ -95,34 +93,28 @@ public class BuildTask {
 
 //    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH }, fetch = FetchType.EAGER)
 
-    @ElementCollection
-    private final Set<String> dependants = new HashSet<>();
+    @ManyToMany
+    private final Set<BuildTask> dependants = new HashSet<>();
 
     /**
      * The builds which must be completed before this build can start
      */
-//    @ManyToMany(mappedBy = "dependants", fetch = FetchType.EAGER)
-    @ElementCollection
-    private Set<String> dependencies = new HashSet<>();
+    @ManyToMany(mappedBy = "dependants", fetch = FetchType.EAGER)
+//    @ElementCollection
+    private Set<BuildTask> dependencies = new HashSet<>();
 
-    private Long buildSetTaskId;
-
-    private Integer buildConfigSetRecordId; //mstodo
+    @ManyToOne
+    private BuildConfigSetRecord buildConfigSetRecord; //mstodo
 
     @ManyToOne
     private ProductMilestone productMilestone;
 
     private boolean hasFailed = false;
 
-    @ManyToOne
-    @Getter
-    // called when all dependencies are built
-    private BuildConfigSetRecord buildConfigSetRecord;
-
     /**
      * This BR is set when Build Task is not required to be built.
      */
-    @OneToOne
+    @ManyToOne
     private BuildRecord noRebuildCause;
 
     /**
@@ -131,7 +123,9 @@ public class BuildTask {
     private String requestContext;
 
     @Transient
-    private BuildConfigurationAudited buildConfigurationAudited;
+    @Getter
+    @Setter
+    private BuildConfigurationAudited buildConfigurationAudited; // mstodo initialize it
 
     @Deprecated // to make JPA happy
     public BuildTask() {
@@ -142,7 +136,6 @@ public class BuildTask {
             BuildOptions buildOptions,
             User user,
             Date submitTime,
-            BuildSetTask buildSetTask,
             String id,
             BuildConfigSetRecord buildConfigSetRecord,
             ProductMilestone productMilestone,
@@ -156,12 +149,13 @@ public class BuildTask {
         this.user = user;
         this.submitTime = submitTime;
 
-        this.buildSetTaskId = buildSetTask.getId();
         this.buildConfigSetRecord = buildConfigSetRecord;
         this.productMilestone = productMilestone;
         this.contentId = contentId;
 
         this.requestContext = requestContext.orElse(null);
+
+        this.buildConfigurationAudited = buildConfigurationAudited;
     }
 
     public void setStatus(BuildCoordinationStatus status) {
@@ -173,18 +167,18 @@ public class BuildTask {
         return productMilestone;
     }
 
-    public Set<String> getDependencies() {
+    public Set<BuildTask> getDependencies() {
         return dependencies;
     }
 
     public void addDependency(BuildTask buildTask) {
         if (!dependencies.contains(buildTask)) {
-            dependencies.add(buildTask.getId());
-            dependants.add(buildTask.getId());
+            dependencies.add(buildTask);
+            buildTask.addDependency(buildTask);
         }
     }
 
-    public Set<String> getDependants() {
+    public Set<BuildTask> getDependants() {
         return dependants;
     }
 
@@ -200,15 +194,6 @@ public class BuildTask {
      */
     public String getStatusDescription() {
         return statusDescription;
-    }
-
-    public BuildConfigurationAudited getBuildConfigurationAudited() {
-        if (this.buildConfigurationAudited == null) { // mstodo remove this.
-            buildConfigurationAudited = BuildConfigurationAudited
-                    .fromBuildConfiguration(buildConfiguration, buildConfigRev);
-        }
-        // mstodo cache it in a transient field
-        return buildConfigurationAudited;
     }
 
     /**
@@ -316,11 +301,13 @@ public class BuildTask {
         return user;
     }
 
-    public Long getBuildSetTaskId() {
-        return buildSetTaskId;
+    public Integer getBuildConfigSetRecordId() {
+        return buildConfigSetRecord.getId();
     }
-/*mstodo remove
-    *//**
+    /*mstodo remove
+     */
+
+    /**
      * Check if this build is ready to build, for example if all dependency builds are complete.
      *
      * @return true if already built, false otherwise
@@ -333,7 +320,6 @@ public class BuildTask {
         }
         return true;
     }*/
-
     @Override
     public String toString() {
         return "Build Task id:" + id + ", name: " + getBuildConfigurationAudited().getName() + ", project name: "
@@ -345,16 +331,11 @@ public class BuildTask {
             BuildOptions buildOptions,
             User user,
             String buildTaskId,
-            BuildSetTask buildSetTask,
+            BuildConfigSetRecord buildConfigSetRecord,
             Date submitTime,
             ProductMilestone productMilestone,
             String contentId,
             Optional<String> requestContext) {
-
-        BuildConfigSetRecord buildConfigSetRecord = null;
-        if (buildSetTask != null) {
-            buildConfigSetRecord = buildSetTask.getBuildConfigSetRecord().orElse(null);
-        }
 
         ProductMilestone milestone = productMilestone;
         if (milestone != null && milestone.getEndDate() != null) {
@@ -370,7 +351,6 @@ public class BuildTask {
                 buildOptions,
                 user,
                 submitTime,
-                buildSetTask,
                 buildTaskId,
                 buildConfigSetRecord,
                 milestone,

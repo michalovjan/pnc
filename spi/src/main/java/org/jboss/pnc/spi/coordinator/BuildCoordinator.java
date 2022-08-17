@@ -18,12 +18,13 @@
 package org.jboss.pnc.spi.coordinator;
 
 import org.jboss.pnc.common.logging.BuildTaskContext;
+import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.User;
-import org.jboss.pnc.enums.BuildCoordinationStatus;
-import org.jboss.pnc.spi.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.BuildResult;
 import org.jboss.pnc.spi.exception.BuildConflictException;
 import org.jboss.pnc.spi.exception.CoreException;

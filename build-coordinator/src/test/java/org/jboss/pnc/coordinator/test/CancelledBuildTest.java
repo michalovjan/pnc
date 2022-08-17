@@ -24,9 +24,9 @@ import org.jboss.pnc.mock.datastore.DatastoreMock;
 import org.jboss.pnc.mock.model.builders.TestProjectConfigurationBuilder;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.BuildRecord;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
-import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.events.BuildStatusChangedEvent;
 import org.jboss.pnc.spi.exception.CoreException;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -195,7 +195,6 @@ public class CancelledBuildTest extends ProjectBuilder {
                 .filter(t -> buildTaskId.equals(t.getId()))
                 .findAny() // got BuildTask
                 .get()
-                .getBuildSetTaskId() // got BuildConfigSet
-                .getId();
+                .getBuildConfigSetRecordId();
     }
 }

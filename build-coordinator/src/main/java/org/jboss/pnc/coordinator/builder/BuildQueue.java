@@ -18,8 +18,8 @@
 package org.jboss.pnc.coordinator.builder;
 
 import org.jboss.pnc.model.BuildConfigurationAudited;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
-import org.jboss.pnc.spi.coordinator.BuildTask;
 
 import java.util.Collection;
 import java.util.List;
@@ -64,7 +64,7 @@ public interface BuildQueue {
     // mstodo set to integer all over the place
     Collection<BuildTask> getBuildSetTasks(Long buildSetTaskId);
 
-    BuildSetTask getBuildSetTask(Long buildSetTaskId);
+    BuildSetTask getBuildSetTask(Integer buildSetTaskId);
 
     void removeSet(BuildSetTask buildSetTask);
 }

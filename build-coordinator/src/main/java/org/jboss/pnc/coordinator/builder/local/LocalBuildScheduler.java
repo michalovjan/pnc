@@ -21,10 +21,10 @@ package org.jboss.pnc.coordinator.builder.local;
 import org.jboss.pnc.common.util.TimeUtils;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.model.BuildConfigurationAudited;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.model.utils.ContentIdentityManager;
 import org.jboss.pnc.spi.BuildResult;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
-import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.events.BuildExecutionStatusChangedEvent;
 import org.jboss.pnc.spi.exception.CoreException;
 import org.jboss.pnc.spi.executor.BuildExecutionConfiguration;
@@ -104,7 +104,7 @@ public class LocalBuildScheduler implements BuildScheduler {
                 buildTask.getBuildOptions().isTemporaryBuild(),
                 TimeUtils.generateTimestamp(
                         buildTask.getBuildOptions().isTimestampAlignment(),
-                        buildTask.getBuildSetTaskId().getStartTime()),
+                        buildTask.getStartTime()),
                 configuration.isBrewPullActive(),
                 configuration.getDefaultAlignmentParams(),
                 buildTask.getBuildOptions().getAlignmentPreference());

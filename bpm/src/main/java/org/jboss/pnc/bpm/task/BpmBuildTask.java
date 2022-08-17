@@ -19,15 +19,10 @@ package org.jboss.pnc.bpm.task;
 
 import lombok.ToString;
 import org.jboss.pnc.bpm.BpmTask;
-import org.jboss.pnc.bpm.ConnectorSelector;
 import org.jboss.pnc.bpm.model.BuildExecutionConfigurationRest;
 import org.jboss.pnc.bpm.model.ComponentBuildParameters;
-import org.jboss.pnc.common.util.TimeUtils;
-import org.jboss.pnc.model.BuildConfigurationAudited;
-import org.jboss.pnc.model.utils.ContentIdentityManager;
-import org.jboss.pnc.spi.coordinator.BuildTask;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.exception.CoreException;
-import org.jboss.pnc.spi.executor.BuildExecutionConfiguration;
 
 import java.io.Serializable;
 import java.util.Optional;
@@ -51,7 +46,6 @@ public class BpmBuildTask extends BpmTask {
 
     @Override
     protected Serializable getProcessParameters() throws CoreException {
-
         return new ComponentBuildParameters(
                 globalConfig.getPncUrl(),
                 globalConfig.getExternalIndyUrl(),
@@ -63,47 +57,48 @@ public class BpmBuildTask extends BpmTask {
     }
 
     private BuildExecutionConfigurationRest getBuildExecutionConfiguration(BuildTask buildTask) {
-
-        BuildConfigurationAudited buildConfigurationAudited = buildTask.getBuildConfigurationAudited();
-        String contentId = ContentIdentityManager.getBuildContentId(buildTask.getId());
-
-        BuildExecutionConfiguration buildExecutionConfiguration = BuildExecutionConfiguration.build(
-                buildTask.getId(),
-                contentId,
-                buildTask.getUser().getId().toString(),
-                buildConfigurationAudited.getBuildScript(),
-                buildConfigurationAudited.getId().toString(),
-                buildConfigurationAudited.getName(),
-                // TODO update to use also other parts or Repository Configuration
-                buildConfigurationAudited.getRepositoryConfiguration().getInternalUrl(),
-                buildConfigurationAudited.getScmRevision(),
-                // SCM Tag is about to be set once it is created after the alignment phase
-                null,
-                buildConfigurationAudited.getRepositoryConfiguration().getExternalUrl(),
-                buildConfigurationAudited.getRepositoryConfiguration().isPreBuildSyncEnabled(),
-                buildConfigurationAudited.getBuildEnvironment().getSystemImageId(),
-                buildConfigurationAudited.getBuildEnvironment().getSystemImageRepositoryUrl(),
-                buildConfigurationAudited.getBuildEnvironment().getSystemImageType(),
-                buildConfigurationAudited.getBuildConfiguration().getBuildType(),
-                buildTask.getBuildOptions().isKeepPodOnFailure(),
-                buildConfigurationAudited.getGenericParameters(),
-                buildTask.getBuildOptions().isTemporaryBuild(),
-                TimeUtils.generateTimestamp(
-                        buildTask.getBuildOptions().isTimestampAlignment(),
-                        buildTask.getBuildSetTaskId().getStartTime()),
-                buildConfigurationAudited.isBrewPullActive(),
-                buildConfigurationAudited.getDefaultAlignmentParams(),
-                buildTask.getBuildOptions().getAlignmentPreference());
-
-        return new BuildExecutionConfigurationRest(buildExecutionConfiguration);
+        throw new IllegalStateException("This functionality is no longer available");
+//        BuildConfigurationAudited buildConfigurationAudited = buildTask.getBuildConfigurationAudited();
+//        String contentId = ContentIdentityManager.getBuildContentId(buildTask.getId());
+//
+//        BuildExecutionConfiguration buildExecutionConfiguration = BuildExecutionConfiguration.build(
+//                buildTask.getId(),
+//                contentId,
+//                buildTask.getUser().getId().toString(),
+//                buildConfigurationAudited.getBuildScript(),
+//                buildConfigurationAudited.getId().toString(),
+//                buildConfigurationAudited.getName(),
+//                // TODO update to use also other parts or Repository Configuration
+//                buildConfigurationAudited.getRepositoryConfiguration().getInternalUrl(),
+//                buildConfigurationAudited.getScmRevision(),
+//                // SCM Tag is about to be set once it is created after the alignment phase
+//                null,
+//                buildConfigurationAudited.getRepositoryConfiguration().getExternalUrl(),
+//                buildConfigurationAudited.getRepositoryConfiguration().isPreBuildSyncEnabled(),
+//                buildConfigurationAudited.getBuildEnvironment().getSystemImageId(),
+//                buildConfigurationAudited.getBuildEnvironment().getSystemImageRepositoryUrl(),
+//                buildConfigurationAudited.getBuildEnvironment().getSystemImageType(),
+//                buildConfigurationAudited.getBuildConfiguration().getBuildType(),
+//                buildTask.getBuildOptions().isKeepPodOnFailure(),
+//                buildConfigurationAudited.getGenericParameters(),
+//                buildTask.getBuildOptions().isTemporaryBuild(),
+//                TimeUtils.generateTimestamp(
+//                        buildTask.getBuildOptions().isTimestampAlignment(),
+//                        buildTask.getBuildSetTaskId().getStartTime()),
+//                buildConfigurationAudited.isBrewPullActive(),
+//                buildConfigurationAudited.getDefaultAlignmentParams(),
+//                buildTask.getBuildOptions().getAlignmentPreference());
+//
+//        return new BuildExecutionConfigurationRest(buildExecutionConfiguration);
     }
 
     @Override
     public String getProcessId() {
-        if (ConnectorSelector.useNewProcess(this, config.isNewBpmForced())) {
-            return config.getBpmNewBuildProcessName();
-        } else {
-            return config.getComponentBuildProcessId();
-        }
+        throw new IllegalStateException("This functionality is no longer available");
+//        if (ConnectorSelector.useNewProcess(this, config.isNewBpmForced())) {
+//            return config.getBpmNewBuildProcessName();
+//        } else {
+//            return config.getComponentBuildProcessId();
+//        }
     }
 }

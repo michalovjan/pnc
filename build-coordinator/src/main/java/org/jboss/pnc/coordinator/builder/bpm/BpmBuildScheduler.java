@@ -25,7 +25,7 @@ import org.jboss.pnc.bpm.task.BpmBuildTask;
 import org.jboss.pnc.common.json.GlobalModuleGroup;
 import org.jboss.pnc.common.json.moduleconfig.BpmModuleConfig;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
-import org.jboss.pnc.spi.coordinator.BuildTask;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.exception.CoreException;
 
 import javax.annotation.PostConstruct;

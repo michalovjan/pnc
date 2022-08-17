@@ -41,12 +41,12 @@ import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.User;
-import org.jboss.pnc.spi.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.BuildResult;
 import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
-import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.coordinator.CompletionStatus;
 import org.jboss.pnc.spi.coordinator.ProcessException;
 import org.jboss.pnc.spi.coordinator.events.DefaultBuildSetStatusChangedEvent;
@@ -832,7 +832,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                         "Unhandled build task status: " + task.getStatus() + ". Build task: " + task);
         }
 
-        Long buildSetTaskId = task.getBuildSetTaskId();
+        Integer buildSetTaskId = task.getBuildConfigSetRecordId();
         BuildSetTask buildSetTask = buildQueue.getBuildSetTask(buildSetTaskId);
         if (buildSetTask != null && buildSetTask.isFinished()) {
             completeBuildSetTask(buildSetTask);
@@ -849,7 +849,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
     }
 
     private void handleErroneousFinish(BuildTask failedTask) {
-        Long taskSetId = failedTask.getBuildSetTaskId();
+        Integer taskSetId = failedTask.getBuildConfigSetRecordId();
         BuildSetTask taskSet = buildQueue.getBuildSetTask(taskSetId);
         if (taskSet != null) {
             log.debug("Finishing tasks in set {}, after failedTask {}.", taskSet, failedTask);
@@ -885,7 +885,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         log.debug("Completing buildSetTask {} ...", buildSetTask);
         buildQueue.removeSet(buildSetTask); // mstodo
 
-        BuildConfigSetRecord record = datastoreAdapter.getBuildCongigSetRecordById(buildSetTask.getBuildConfigSetRecordId());
+        BuildConfigSetRecord record =
+                datastoreAdapter.getBuildCongigSetRecordById(buildSetTask.getBuildConfigSetRecordId());
         buildSetTask.taskStatusUpdatedToFinalState(status -> {
             if (BuildStatus.NO_REBUILD_REQUIRED == record.getStatus() && status == BuildStatus.SUCCESS) {
                 log.debug("Build set already marked as NO_REBUILD_REQUIRED. BuildSetTask: {}", this);

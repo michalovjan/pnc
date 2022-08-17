@@ -28,6 +28,7 @@ import org.jboss.pnc.common.util.HttpUtils;
 import org.jboss.pnc.common.util.StringUtils;
 import org.jboss.pnc.common.util.TimeUtils;
 import org.jboss.pnc.constants.Attributes;
+import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.maintenance.TemporaryBuildsCleanerAsyncInvoker;
 import org.jboss.pnc.dto.Build;
 import org.jboss.pnc.dto.BuildConfigurationRevision;
@@ -60,9 +61,9 @@ import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.IdRev;
 import org.jboss.pnc.model.User;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
-import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.coordinator.Result;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates;
@@ -116,7 +117,6 @@ import static java.lang.Math.min;
 import static org.jboss.pnc.common.util.StreamHelper.nullableStreamOf;
 import static org.jboss.pnc.facade.providers.api.UserRoles.SYSTEM_USER;
 import static org.jboss.pnc.spi.datastore.predicates.ArtifactPredicates.withIds;
-import static org.jboss.pnc.spi.datastore.predicates.BuildConfigurationPredicates.withBuildConfigurationSetId;
 import static org.jboss.pnc.spi.datastore.predicates.BuildConfigurationPredicates.withProjectId;
 import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.buildFinishedBefore;
 import static org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates.temporaryBuild;
@@ -151,12 +151,14 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
     private BuildMapper buildMapper;
 
     private final BuildTaskDatastore buildTaskDatastore;
+    private final BuildQueue buildQueue;
     private BuildCoordinator buildCoordinator;
     private SortInfoProducer sortInfoProducer;
     private UserService userService;
 
     private TemporaryBuildsCleanerAsyncInvoker temporaryBuildsCleanerAsyncInvoker;
     private ResultMapper resultMapper;
+
 
     @Inject
     public BuildProviderImpl(
@@ -173,7 +175,8 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
             UserService userService,
             TemporaryBuildsCleanerAsyncInvoker temporaryBuildsCleanerAsyncInvoker,
             ResultMapper resultMapper,
-            BuildTaskDatastore buildTaskDatastore) {
+            BuildTaskDatastore buildTaskDatastore,
+            BuildQueue buildQueue) {
         super(repository, mapper, BuildRecord.class);
 
         this.artifactRepository = artifactRepository;
@@ -190,6 +193,7 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
         this.temporaryBuildsCleanerAsyncInvoker = temporaryBuildsCleanerAsyncInvoker;
         this.resultMapper = resultMapper;
         this.buildTaskDatastore = buildTaskDatastore;
+        this.buildQueue = buildQueue;
     }
 
     @Override
@@ -424,23 +428,7 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
 
     @Override
     public Page<Build> getBuildsForGroupConfiguration(BuildPageInfo pageInfo, String groupConfigurationId) {
-        if (pageInfo.isRunning()) {
-            if (pageInfo.isLatest()) {
-                buildQueue.getLatestRunningBuildForGroupConfig(groupConfigurationId);
-            } else {
-                buildQueue.getRunningBuildsForGroupConfig(groupConfigurationId, pageInfo.getPageSize(),
-                        pageInfo.getPageIndex(), pageInfo.getSort(), pageInfo.getQ());
-            }
-        } else {
-            buildQueue.getRunningBuildsForGroupConfig(groupConfigurationId, pageInfo.getPageSize(),
-                    pageInfo.getPageIndex(), pageInfo.getSort(), pageInfo.getQ());
-            return getStoredBuildList(pageInfo, withBuildConfigurationSetId(Integer.valueOf(groupConfigurationId)));
-        }
-        List<Long> buildSetTaskIds = buildTaskDatastore.getBuildSetTaskByConfigSetId(groupConfigurationId)
-                .stream()
-                .map(BuildSetTask::getId)
-                .collect(Collectors.toList());
-        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTaskId() != null && t.getBuildSetTaskId()
+        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTask() != null && t.getBuildSetTask()
                 .getBuildConfigSetRecord()
                 .map(gc -> Integer.valueOf(groupConfigurationId).equals(gc.getBuildConfigurationSet().getId()))
                 .orElse(false);
@@ -449,10 +437,8 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
 
     @Override
     public Page<Build> getBuildsForGroupBuild(BuildPageInfo pageInfo, String groupBuildId) {
-        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTaskId() != null && t.getBuildSetTaskId()
-                .getBuildConfigSetRecord()
-                .map(gc -> Integer.valueOf(groupBuildId).equals(gc.getId()))
-                .orElse(false);
+        java.util.function.Predicate<BuildTask> predicate = t ->
+                t.getBuildConfigSetRecordId() != null && t.getBuildConfigSetRecordId() == Integer.parseInt(groupBuildId);
         return getBuildList(pageInfo, predicate, withBuildConfigSetRecordId(Integer.valueOf(groupBuildId)));
     }
 

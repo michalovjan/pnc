@@ -17,25 +17,17 @@
  */
 package org.jboss.pnc.spi.coordinator;
 
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.model.BuildConfigSetRecord;
 import org.jboss.pnc.model.BuildConfigurationAudited;
-import org.jboss.pnc.spi.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.BuildSetStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.Transient;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
@@ -46,22 +38,13 @@ import java.util.stream.Collectors;
 /**
  * Created by <a href="mailto:matejonnet@gmail.com">Matej Lazar</a> on 2015-03-26.
  */
-@Entity
 @NoArgsConstructor
 public class BuildSetTask {
 
-    @Transient
     private final Logger log = LoggerFactory.getLogger(BuildCoordinator.class);
 
-    @Id
-    @GeneratedValue
-    private Long id;
-
-    @Getter
     private Integer buildConfigSetRecordId;
 
-    @Getter
-    @ManyToOne(cascade = { CascadeType.ALL, CascadeType.PERSIST, CascadeType.REFRESH })
     private BuildOptions buildOptions;
 
     private BuildSetStatus status;
@@ -71,7 +54,6 @@ public class BuildSetTask {
     private Date startTime;
 
     // mstodo build set tasks should be updated and checked for being finished independently of tasks being finished!
-    @OneToMany(mappedBy = "buildSetTask", fetch = FetchType.EAGER)
     private final Set<BuildTask> buildTasks = new HashSet<>();
 
     /**

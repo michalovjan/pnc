@@ -37,9 +37,9 @@ import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.User;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
-import org.jboss.pnc.spi.coordinator.BuildTask;
 import org.jboss.pnc.spi.coordinator.Result;
 import org.jboss.pnc.spi.datastore.repositories.BuildConfigSetRecordRepository;
 import org.jboss.pnc.spi.datastore.repositories.BuildConfigurationAuditedRepository;
@@ -710,7 +710,7 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
 
     private BuildTask mockBuildTaskWithSet(BuildSetTask buildSetTask) {
         BuildTask task = mockBuildTask();
-        when(task.getBuildSetTaskId()).thenReturn(buildSetTask.getId());
+        when(task.getBuildConfigSetRecordId()).thenReturn(buildSetTask.getId());
         when(task.getUser()).thenReturn(mock(User.class));
         return task;
     }

@@ -25,7 +25,7 @@ import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.User;
-import org.jboss.pnc.spi.coordinator.BuildTask;
+import org.jboss.pnc.model.runtime.BuildTask;
 
 import java.util.Collection;
 import java.util.List;
