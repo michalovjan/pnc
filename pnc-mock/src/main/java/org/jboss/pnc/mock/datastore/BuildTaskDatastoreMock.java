@@ -165,12 +165,9 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
     }
 
     @Override
-    public BuildSetTask getBuildSetTask(Long buildSetTaskId) {
+    public List<BuildTask> getBuildTasksByBCSRId(Long buildSetTaskId) {
         return taskSets.get(buildSetTaskId);
     }
 
-    @Override
-    public void remove(BuildSetTask buildSetTask) {
-        taskSets.remove(buildSetTask.getId());
     }
 }

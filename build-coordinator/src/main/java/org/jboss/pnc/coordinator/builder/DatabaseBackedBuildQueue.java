@@ -248,26 +248,13 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     }
 
     @Override
-    public List<BuildTask> getDependencies(BuildTask task) {
-        return task.getDependencies()
-                .stream().map(datastore::getTask)
-                .collect(Collectors.toList());
+    public Collection<BuildTask> getDependencies(BuildTask task) {
+        return task.getDependencies();
     }
 
     @Override
-    public Collection<BuildTask> getBuildSetTasks(Long buildSetTaskId) {
-        BuildSetTask set = datastore.getBuildSetTask(buildSetTaskId);
-        return set.getBuildTasks();
-    }
-
-    @Override
-    public BuildSetTask getBuildSetTask(Long buildSetTaskId) {
-        return datastore.getBuildSetTask(buildSetTaskId);
-    }
-
-    @Override
-    public void removeSet(BuildSetTask buildSetTask) {
-        datastore.remove(buildSetTask);
+    public Collection<BuildTask> getBuildTasksByConfigSetRecordId(Integer buildConfigSetRecordId) {
+        return datastore.getBuildTasksByBCSRId(buildConfigSetRecordId);
     }
 
     public Optional<BuildTask> getUnfinishedTask(BuildConfigurationAudited buildConfigurationAudited) {

@@ -104,6 +104,7 @@ public class BuildTask {
     private Set<BuildTask> dependencies = new HashSet<>();
 
     @ManyToOne
+    @Getter
     private BuildConfigSetRecord buildConfigSetRecord; //mstodo
 
     @ManyToOne

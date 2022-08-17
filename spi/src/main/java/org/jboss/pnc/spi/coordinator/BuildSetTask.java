@@ -17,6 +17,7 @@
  */
 package org.jboss.pnc.spi.coordinator;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.enums.BuildStatus;
@@ -43,8 +44,10 @@ public class BuildSetTask {
 
     private final Logger log = LoggerFactory.getLogger(BuildCoordinator.class);
 
+    @Getter
     private Integer buildConfigSetRecordId;
 
+    @Getter
     private BuildOptions buildOptions;
 
     private BuildSetStatus status;
@@ -148,14 +151,6 @@ public class BuildSetTask {
                 .filter((bt) -> bt.getBuildConfigurationAudited().equals(buildConfigurationAudited))
                 .findFirst()
                 .orElse(null);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Optional<BuildConfigSetRecord> getBuildConfigSetRecord() {
-        return Optional.ofNullable(buildConfigSetRecord);
     }
 
     public static class Builder {

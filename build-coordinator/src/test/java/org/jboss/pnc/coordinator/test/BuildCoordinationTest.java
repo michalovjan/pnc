@@ -33,6 +33,7 @@ import org.jboss.pnc.model.BuildConfigSetRecord;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.runtime.BuildOptions;
+import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
@@ -107,7 +108,7 @@ public class BuildCoordinationTest {
 
         // check the result
         Assert.assertEquals(BuildSetStatus.DONE, lastBuildSetStatus.get());
-        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildConfigSetRecord();
+        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst();
         assertThat(maybeSetRecord.isPresent()).isTrue();
         Assert.assertEquals(BuildStatus.SUCCESS, maybeSetRecord.get().getStatus());
         assertEmptyQueue();
@@ -130,7 +131,7 @@ public class BuildCoordinationTest {
 
         // check the result
         Assert.assertEquals(BuildSetStatus.DONE, lastBuildSetStatus.get());
-        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildConfigSetRecord();
+        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst();
         assertThat(maybeSetRecord.isPresent()).isTrue();
         Assert.assertEquals(BuildStatus.SUCCESS, maybeSetRecord.get().getStatus());
         assertEmptyQueue();
@@ -155,7 +156,7 @@ public class BuildCoordinationTest {
         Assert.assertEquals(BuildSetStatus.DONE, lastBuildSetStatus.get());
         datastoreMock.getBuildConfigSetRecordById(buildConfigurationSet.getId());
 
-        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildConfigSetRecord();
+        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst();
         assertThat(maybeSetRecord.isPresent()).isTrue();
         Assert.assertEquals(BuildStatus.FAILED, maybeSetRecord.get().getStatus());
         Collection<BuildStatus> statuses = getBuildStatuses();

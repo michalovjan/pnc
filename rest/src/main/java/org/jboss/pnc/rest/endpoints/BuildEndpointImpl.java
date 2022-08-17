@@ -18,6 +18,7 @@
 package org.jboss.pnc.rest.endpoints;
 
 import java.io.BufferedWriter;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.invoke.MethodHandles;

@@ -56,7 +56,5 @@ public interface BuildTaskDatastore {
 
     boolean areDependenciesBuilt(BuildTask task);
 
-    BuildSetTask getBuildSetTask(Long buildSetTaskId);
-
-    void remove(BuildSetTask buildSetTask);
+    List<BuildTask> getBuildTasksByBCSRId(Integer buildSetTaskId);
 }

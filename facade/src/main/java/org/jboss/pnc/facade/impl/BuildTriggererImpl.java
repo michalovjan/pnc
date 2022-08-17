@@ -19,7 +19,6 @@ package org.jboss.pnc.facade.impl;
 
 import com.google.common.base.Preconditions;
 import org.jboss.pnc.common.logging.BuildTaskContext;
-import org.jboss.pnc.coordinator.notifications.buildSetTask.BuildSetStatusNotifications;
 import org.jboss.pnc.coordinator.notifications.buildTask.BuildStatusNotifications;
 import org.jboss.pnc.dto.BuildConfigurationRevisionRef;
 import org.jboss.pnc.dto.requests.GroupBuildRequest;
@@ -70,9 +69,6 @@ public class BuildTriggererImpl implements BuildTriggerer {
 
     @Inject
     private UserService user;
-
-    @Inject
-    private BuildSetStatusNotifications buildSetStatusNotifications;
 
     @Inject
     private BuildStatusNotifications buildStatusNotifications;

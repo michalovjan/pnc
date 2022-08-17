@@ -59,12 +59,8 @@ public interface BuildQueue {
 
     boolean readyToBuild(BuildTask buildTask);
 
-    List<BuildTask> getDependencies(BuildTask task);
+    Collection<BuildTask> getDependencies(BuildTask task);
 
     // mstodo set to integer all over the place
-    Collection<BuildTask> getBuildSetTasks(Long buildSetTaskId);
-
-    BuildSetTask getBuildSetTask(Integer buildSetTaskId);
-
-    void removeSet(BuildSetTask buildSetTask);
+    Collection<BuildTask> getBuildTasksByConfigSetRecordId(Integer buildSetTaskId);
 }

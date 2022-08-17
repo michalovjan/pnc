@@ -63,7 +63,6 @@ import org.jboss.pnc.model.IdRev;
 import org.jboss.pnc.model.User;
 import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
-import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.coordinator.Result;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.jboss.pnc.spi.datastore.predicates.BuildRecordPredicates;
@@ -109,7 +108,6 @@ import java.util.Spliterators;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -470,15 +468,12 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
      * @return Running and completed build ids from the Build Group.
      */
     private List<String> getBuildIdsInTheGroup(BuildConfigSetRecord buildConfigSetRecord) {
-        BuildSetTask buildSetTask = buildCoordinator.getSubmittedBuildSetTaskByConfigSet(buildConfigSetRecord.getId());
+        List<BuildTask> runningTasks = buildQueue.getBuildTasksByConfigSetRecordId(buildConfigSetRecord.getId());
         List<String> runningAndStoredIds = new ArrayList<>();
-        if (buildSetTask != null) {
-            buildSetTask.getBuildTasks()
-                    .stream()
+        runningTasks.stream()
                     .sorted(Comparator.comparing(bt -> bt.getBuildConfigurationAudited().getName()))
                     .map(BuildTask::getId)
                     .forEach(runningAndStoredIds::add);
-        }
 
         Set<String> storedBuildIds = buildConfigSetRecord.getBuildRecords()
                 .stream()
@@ -890,9 +885,9 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
      */
     private Page<Build> getBuilds(
             BuildPageInfo pageInfo,
-            Supplier<List<Build>> runningBuildsSupplier,
+            java.util.function.Predicate<BuildTask> predicate,
             Predicate<BuildRecord> dbPredicate) {
-        List<Build> runningBuilds = runningBuildsSupplier.get();
+        List<Build> runningBuilds = readRunningBuilds(pageInfo, predicate);
 
         int firstPossibleDBIndex = pageInfo.getPageIndex() * pageInfo.getPageSize() - runningBuilds.size();
         int lastPossibleDBIndex = (pageInfo.getPageIndex() + 1) * pageInfo.getPageSize() - 1;

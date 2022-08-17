@@ -195,15 +195,11 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
     }
 
     @Override
-    public BuildSetTask getBuildSetTask(Long buildSetTaskId) {
+    public List<BuildTask> getBuildTasksByBCSRId(Integer buildConfigSetRecordId) {
         return entityManager.createQuery(
-                "select ts from BuildSetTask ts join fetch ts.buildTasks where id = :setId", BuildSetTask.class)
-                .setParameter("setId", buildSetTaskId)
-                .getSingleResult();
+                "select bt from BuildTask bt where bt.buildConfigSetRecord.id = :setId", BuildTask.class)
+                .setParameter("setId", buildConfigSetRecordId)
+                .getResultList();
     }
 
-    @Override
-    public void remove(BuildSetTask buildSetTask) {
-        entityManager.remove(buildSetTask); // mstodo probly needed removal by ID
-    }
 }

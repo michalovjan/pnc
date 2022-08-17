@@ -475,7 +475,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             return false;
         }
         log.debug("Cancelling Build Configuration Set: {}", buildSetTaskId);
-        Collection<BuildTask> buildTasks = buildQueue.getBuildSetTasks((long)buildSetTaskId);
+        Collection<BuildTask> buildTasks = buildQueue.getBuildTasksByConfigSetRecordId(buildSetTaskId);
         buildTasks.forEach(buildTask -> {
                     try {
                         MDCUtils.addBuildContext(getMDCMeta(buildTask));
@@ -612,14 +612,13 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             }
         }
         buildConfigSetRecord
-                .ifPresent(record -> sendSetStatusChangeEvent(buildSetTask, status, oldStatus, record, description));
+                .ifPresent(record -> sendSetStatusChangeEvent(status, oldStatus, record, description));
 
         buildSetTask.setStatus(status);
         buildSetTask.setStatusDescription(description);
     }
 
     private void sendSetStatusChangeEvent(
-            BuildSetTask buildSetTask,
             BuildSetStatus status,
             BuildSetStatus oldStatus,
             BuildConfigSetRecord record,
@@ -832,6 +831,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                         "Unhandled build task status: " + task.getStatus() + ". Build task: " + task);
         }
 
+        // TODO MOVE TO JOB
         Integer buildSetTaskId = task.getBuildConfigSetRecordId();
         BuildSetTask buildSetTask = buildQueue.getBuildSetTask(buildSetTaskId);
         if (buildSetTask != null && buildSetTask.isFinished()) {
@@ -881,12 +881,9 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         }
     }
 
-    private void completeBuildSetTask(BuildSetTask buildSetTask) {
-        log.debug("Completing buildSetTask {} ...", buildSetTask);
-        buildQueue.removeSet(buildSetTask); // mstodo
+    private void completeBuildSetTask(BuildConfigSetRecord record) {
+        log.debug("Completing buildSetTask {} ...", record);
 
-        BuildConfigSetRecord record =
-                datastoreAdapter.getBuildCongigSetRecordById(buildSetTask.getBuildConfigSetRecordId());
         buildSetTask.taskStatusUpdatedToFinalState(status -> {
             if (BuildStatus.NO_REBUILD_REQUIRED == record.getStatus() && status == BuildStatus.SUCCESS) {
                 log.debug("Build set already marked as NO_REBUILD_REQUIRED. BuildSetTask: {}", this);
@@ -897,6 +894,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             record.setStatus(status);
             record.setEndTime(new Date());
         });
+        //TODO REMOVE
         updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.DONE);
 
         buildSetTask.getBuildConfigSetRecord().ifPresent(r -> {
