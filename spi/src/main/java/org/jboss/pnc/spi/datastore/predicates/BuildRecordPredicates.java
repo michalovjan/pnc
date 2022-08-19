@@ -35,6 +35,7 @@ import org.jboss.pnc.model.ProductMilestone;
 import org.jboss.pnc.model.ProductMilestone_;
 import org.jboss.pnc.model.User;
 import org.jboss.pnc.model.runtime.BuildTask;
+import org.jboss.pnc.model.runtime.BuildTask_;
 import org.jboss.pnc.spi.datastore.repositories.api.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -270,6 +271,7 @@ public class BuildRecordPredicates {
             return cb.equal(buildConfigSet.get(BuildConfigurationSet_.id), buildConfigSetId);
         };
     }
+    //mstodo remove?
     public static Predicate<BuildTask> buildTaskWithBuildConfigSetId(Integer buildConfigSetId) {
         return (root, query, cb) -> {
 

@@ -184,7 +184,7 @@ public interface BuildMapper extends UpdatableEntityMapper<Base32LongID, BuildRe
             target = "buildConfigRevision",
             source = "buildConfigurationAudited",
             resultType = BuildConfigurationRevisionRef.class)
-    @Mapping(target = "groupBuild", source = "buildSetTask.buildConfigSetRecord")
+    @Mapping(target = "groupBuild", source = "buildConfigSetRecord")
     @Mapping(target = "productMilestone", resultType = ProductMilestoneRef.class)
     @Mapping(target = "noRebuildCause", resultType = BuildRef.class)
     @Mapping(target = "buildContentId", source = "contentId")
@@ -198,7 +198,7 @@ public interface BuildMapper extends UpdatableEntityMapper<Base32LongID, BuildRe
     @Mapping(target = "progress", source = "status")
     @Mapping(target = "buildOutputChecksum", ignore = true)
     @BeanMapping(
-            ignoreUnmappedSourceProperties = { "statusDescription", "buildSetTask", "buildConfigSetRecordId",
+            ignoreUnmappedSourceProperties = { "statusDescription", "buildConfigSetRecordId",
                     "buildOptions", "dependants", "dependencies", "requestContext" })
     Build fromBuildTask(BuildTask buildTask);
 

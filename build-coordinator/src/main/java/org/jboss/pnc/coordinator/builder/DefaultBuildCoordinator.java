@@ -592,14 +592,14 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
     }
 
     private void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildSetStatus status, String description) {
+        Optional<BuildConfigSetRecord> buildConfigSetRecord =
+                Optional.ofNullable(buildSetTask.getBuildConfigSetRecord());
         log.info(
-                "Setting new status {} on buildSetTask.id {}. Description: {}.",
+                "Setting new status {} on buildConfigSetRecord.id {}. Description: {}.",
                 status,
-                buildSetTask.getBuildConfigSetRecordId(),
+                buildConfigSetRecord.map(BuildConfigSetRecord::getId).orElse(null),
                 description);
         BuildSetStatus oldStatus = buildSetTask.getStatus();
-        Optional<BuildConfigSetRecord> buildConfigSetRecord =
-                Optional.ofNullable(datastoreAdapter.getBuildCongigSetRecordById(buildSetTask.getBuildConfigSetRecordId()));
 
         // Rejected status needs to be propagated to the BuildConfigSetRecord in database.
         // Completed BuildSets are updated using BuildSetTask#taskStatusUpdatedToFinalState()

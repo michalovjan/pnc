@@ -20,7 +20,6 @@ package org.jboss.pnc.mock.datastore;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 
 import java.util.ArrayList;
@@ -37,8 +36,6 @@ import java.util.stream.Collectors;
 public class BuildTaskDatastoreMock implements BuildTaskDatastore {
     private final AtomicLong taskIds = new AtomicLong(1L);
     private final Map<String, BuildTask> tasks = new ConcurrentHashMap<>();
-    // mstodo adding!
-    private Map<Long, BuildSetTask> taskSets = new ConcurrentHashMap<>();
 
     @Override
     public void persist(BuildTask task) {
@@ -111,8 +108,7 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
         for (BuildTask task : tasks.values()) {
             if (task.getStatus() == BuildCoordinationStatus.NEW) {
                 boolean hasAllDepsFinishedSuccessfully = true;
-                for (String dependencyId : task.getDependencies()) {
-                    BuildTask dependency = tasks.get(dependencyId);
+                for (BuildTask dependency : task.getDependencies()) {
                     BuildCoordinationStatus depStatus = dependency.getStatus();
                     if (!states.contains(depStatus)) {
                         hasAllDepsFinishedSuccessfully = false;
@@ -131,8 +127,7 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
         for (BuildTask task : tasks.values()) {
             if (task.getStatus() == BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES) {
                 boolean hasUnfinishedOrFailedDep = false;
-                for (String dependencyId : task.getDependencies()) {
-                    BuildTask dependency = tasks.get(dependencyId);
+                for (BuildTask dependency : task.getDependencies()) {
                     BuildCoordinationStatus depState = dependency.getStatus();
                     if (!depState.isCompleted()) {
                         hasUnfinishedOrFailedDep = true;
@@ -155,8 +150,8 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
 
     @Override
     public boolean areDependenciesBuilt(BuildTask task) {
-        for (String dependency : task.getDependencies()) {
-            if (!tasks.get(dependency).getStatus().isCompleted()) {
+        for (BuildTask dependency : task.getDependencies()) {
+            if (!dependency.getStatus().isCompleted()) {
                 return false;
             }
         }
@@ -165,9 +160,10 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
     }
 
     @Override
-    public List<BuildTask> getBuildTasksByBCSRId(Long buildSetTaskId) {
-        return taskSets.get(buildSetTaskId);
+    public List<BuildTask> getBuildTasksByBCSRId(Integer buildConfigSetRecordId) {
+        return tasks.values().stream()
+                .filter(t -> t.getBuildConfigSetRecord().getId().equals(buildConfigSetRecordId))
+                .collect(Collectors.toList());
     }
 
-    }
 }

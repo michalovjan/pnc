@@ -20,6 +20,7 @@ package org.jboss.pnc.mock.repository;
 import org.jboss.pnc.model.BuildConfigSetRecord;
 import org.jboss.pnc.spi.datastore.repositories.BuildConfigSetRecordRepository;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -32,5 +33,10 @@ public class BuildConfigSetRecordRepositoryMock extends IntIdRepositoryMock<Buil
     @Override
     public List<BuildConfigSetRecord> findTemporaryBuildConfigSetRecordsOlderThan(Date date) {
         return null;
+    }
+
+    @Override
+    public List<BuildConfigSetRecord> findBuildConfigSetRecordsInProgress() {
+        return Collections.emptyList();
     }
 }

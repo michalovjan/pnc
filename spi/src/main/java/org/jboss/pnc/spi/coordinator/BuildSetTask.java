@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -45,7 +44,7 @@ public class BuildSetTask {
     private final Logger log = LoggerFactory.getLogger(BuildCoordinator.class);
 
     @Getter
-    private Integer buildConfigSetRecordId;
+    private BuildConfigSetRecord buildConfigSetRecord;
 
     @Getter
     private BuildOptions buildOptions;
@@ -68,7 +67,7 @@ public class BuildSetTask {
     private BuildSetTask(
             BuildConfigSetRecord buildConfigSetRecord, // TODO decouple datastore entity
             BuildOptions buildOptions) {
-        this.buildConfigSetRecordId = buildConfigSetRecord.getId();
+        this.buildConfigSetRecord = buildConfigSetRecord;
         this.buildOptions = buildOptions;
     }
 

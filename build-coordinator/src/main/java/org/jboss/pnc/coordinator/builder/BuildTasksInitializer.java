@@ -336,7 +336,7 @@ public class BuildTasksInitializer {
                             buildSetTask.getBuildOptions(),
                             user,
                             buildId,
-                            buildSetTask,
+                            buildSetTask.getBuildConfigSetRecord(),
                             buildSetTask.getStartTime(),
                             productMilestone,
                             buildContentId,
