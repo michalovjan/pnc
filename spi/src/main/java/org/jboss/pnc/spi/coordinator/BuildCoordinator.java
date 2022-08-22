@@ -26,6 +26,7 @@ import org.jboss.pnc.model.User;
 import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.BuildResult;
+import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.exception.BuildConflictException;
 import org.jboss.pnc.spi.exception.CoreException;
 
@@ -76,4 +77,8 @@ public interface BuildCoordinator {
     void start();
 
     Optional<BuildTaskContext> getMDCMeta(String buildTaskId);
+
+    void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildSetStatus status, String description);
+
+    void updateBuildConfigSetRecordStatus(BuildConfigSetRecord setRecord, BuildStatus status, String description);
 }

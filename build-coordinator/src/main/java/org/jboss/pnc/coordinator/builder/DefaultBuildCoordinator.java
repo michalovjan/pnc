@@ -68,7 +68,6 @@ import javax.inject.Inject;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -79,7 +78,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.jboss.pnc.common.util.CollectionUtils.hasCycle;
 
@@ -591,7 +589,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         updateBuildSetTaskStatus(buildSetTask, status, null);
     }
 
-    private void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildSetStatus status, String description) {
+    public void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildSetStatus status, String description) {
         Optional<BuildConfigSetRecord> buildConfigSetRecord =
                 Optional.ofNullable(buildSetTask.getBuildConfigSetRecord());
         log.info(
@@ -830,46 +828,15 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                 throw new IllegalArgumentException(
                         "Unhandled build task status: " + task.getStatus() + ". Build task: " + task);
         }
-
-        // TODO MOVE TO JOB
-        Integer buildSetTaskId = task.getBuildConfigSetRecordId();
-        BuildSetTask buildSetTask = buildQueue.getBuildSetTask(buildSetTaskId);
-        if (buildSetTask != null && buildSetTask.isFinished()) {
-            completeBuildSetTask(buildSetTask);
-        } else if (buildSetTask != null) {
-            // mstodo remove maybe?
-            log.debug(
-                    "build set task not finished yet, builds: \n\t{}",
-                    buildSetTask.getBuildTasks()
-                            .stream()
-                            .sorted(Comparator.comparing(BuildTask::getStatus))
-                            .map(t -> String.format("%s: [%s]", t.getId(), t.getStatus()))
-                            .collect(Collectors.joining("\n\t")));
-        }
     }
 
     private void handleErroneousFinish(BuildTask failedTask) {
-        Integer taskSetId = failedTask.getBuildConfigSetRecordId();
-        BuildSetTask taskSet = buildQueue.getBuildSetTask(taskSetId);
-        if (taskSet != null) {
-            log.debug("Finishing tasks in set {}, after failedTask {}.", taskSet, failedTask);
-            taskSet.getBuildTasks()
-                    .stream()
-                    .filter(t -> isDependentOn(failedTask, t))
-                    .filter(t -> !t.getStatus().isCompleted())
-                    .forEach(t -> finishDueToFailedDependency(failedTask, t));
-        }
-    }
+        Set<BuildTask> dependants = failedTask.getDependants();
 
-    /**
-     * checks if the possible dependant depends on the possible dependency
-     *
-     * @param dependency - possible dependency
-     * @param dependant - task to be checked
-     * @return true if dependant indeed depends on the dependency
-     */
-    private boolean isDependentOn(BuildTask dependency, BuildTask dependant) {
-        return dependant.getDependencies().contains(dependency);
+        dependants.stream()
+                .filter(t -> !t.getStatus().isCompleted())
+                .peek(t ->  log.debug("Finishing task {}, after failedTask {}.", t, failedTask))
+                .forEach(t -> finishDueToFailedDependency(failedTask, t));
     }
 
     private void storeRejectedTask(BuildTask buildTask) {
@@ -881,30 +848,6 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         }
     }
 
-    private void completeBuildSetTask(BuildConfigSetRecord record) {
-        log.debug("Completing buildSetTask {} ...", record);
-
-        buildSetTask.taskStatusUpdatedToFinalState(status -> {
-            if (BuildStatus.NO_REBUILD_REQUIRED == record.getStatus() && status == BuildStatus.SUCCESS) {
-                log.debug("Build set already marked as NO_REBUILD_REQUIRED. BuildSetTask: {}", this);
-            } else {
-                log.debug("Marking build set as SUCCESS. BuildSetTask: {}", this);
-                record.setStatus(BuildStatus.SUCCESS);
-            }
-            record.setStatus(status);
-            record.setEndTime(new Date());
-        });
-        //TODO REMOVE
-        updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.DONE);
-
-        buildSetTask.getBuildConfigSetRecord().ifPresent(r -> {
-            try {
-                datastoreAdapter.saveBuildConfigSetRecord(r);
-            } catch (DatastoreException e) {
-                log.error("Unable to save build config set record", e);
-            }
-        });
-    }
 
     private void finishDueToFailedDependency(BuildTask failedTask, BuildTask dependentTask) {
         log.debug("Finishing task {} due to a failed dependency.", dependentTask);
