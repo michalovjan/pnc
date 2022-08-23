@@ -271,7 +271,8 @@ public class BuildRecordPredicates {
             return cb.equal(buildConfigSet.get(BuildConfigurationSet_.id), buildConfigSetId);
         };
     }
-    //mstodo remove?
+
+    // mstodo remove?
     public static Predicate<BuildTask> buildTaskWithBuildConfigSetId(Integer buildConfigSetId) {
         return (root, query, cb) -> {
 

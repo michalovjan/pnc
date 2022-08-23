@@ -20,6 +20,8 @@ package org.jboss.pnc.mock.coordinator;
 
 import org.jboss.pnc.common.logging.BuildTaskContext;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
+import org.jboss.pnc.enums.BuildStatus;
+import org.jboss.pnc.model.BuildConfigSetRecord;
 import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.BuildConfigurationSet;
@@ -127,5 +129,13 @@ public class BuildCoordinatorMock implements BuildCoordinator {
     @Override
     public Optional<BuildTaskContext> getMDCMeta(String buildTaskId) {
         return Optional.empty();
+    }
+
+    @Override
+    public void updateBuildConfigSetRecordStatus(
+            BuildConfigSetRecord setRecord,
+            BuildStatus status,
+            String description) {
+
     }
 }

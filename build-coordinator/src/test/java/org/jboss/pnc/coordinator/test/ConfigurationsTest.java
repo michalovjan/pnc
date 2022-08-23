@@ -21,13 +21,13 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
+import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.enums.RebuildMode;
 import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.User;
 import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -91,7 +91,7 @@ public class ConfigurationsTest extends ProjectBuilder {
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.setRebuildMode(RebuildMode.FORCE);
         BuildSetTask buildSetTask = buildCoordinator.build(buildConfigurationSet, user, buildOptions);
-        Assert.assertEquals(BuildSetStatus.REJECTED, buildSetTask.getStatus());
+        Assert.assertEquals(BuildStatus.REJECTED, buildSetTask.getStatus());
         Assert.assertTrue(
                 "Invalid status description: " + buildSetTask.getStatusDescription(),
                 buildSetTask.getStatusDescription().contains("Cycle dependencies found"));

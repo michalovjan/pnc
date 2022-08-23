@@ -198,8 +198,8 @@ public interface BuildMapper extends UpdatableEntityMapper<Base32LongID, BuildRe
     @Mapping(target = "progress", source = "status")
     @Mapping(target = "buildOutputChecksum", ignore = true)
     @BeanMapping(
-            ignoreUnmappedSourceProperties = { "statusDescription", "buildConfigSetRecordId",
-                    "buildOptions", "dependants", "dependencies", "requestContext" })
+            ignoreUnmappedSourceProperties = { "statusDescription", "buildConfigSetRecordId", "buildOptions",
+                    "dependants", "dependencies", "requestContext" })
     Build fromBuildTask(BuildTask buildTask);
 
     public static <T> T unwrap(Optional<T> optional) {

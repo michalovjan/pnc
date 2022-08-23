@@ -28,8 +28,8 @@ import org.jboss.pnc.common.json.GlobalModuleGroup;
 import org.jboss.pnc.common.json.moduleconfig.BpmModuleConfig;
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
+import org.jboss.pnc.coordinator.builder.DatabaseBackedBuildQueue;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
-import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.bpm.BpmBuildScheduler;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.enums.BuildStatus;
@@ -42,6 +42,7 @@ import org.jboss.pnc.mapper.api.GroupBuildMapper;
 import org.jboss.pnc.mapper.api.ProjectMapper;
 import org.jboss.pnc.mapper.api.SCMRepositoryMapper;
 import org.jboss.pnc.mapper.api.TargetRepositoryMapper;
+import org.jboss.pnc.mock.datastore.BuildTaskDatastoreMock;
 import org.jboss.pnc.mock.datastore.DatastoreMock;
 import org.jboss.pnc.mock.model.MockUser;
 import org.jboss.pnc.mock.model.builders.TestProjectConfigurationBuilder;
@@ -128,7 +129,7 @@ public class CancelledBuildByBpmTest {
         DatastoreAdapter datastoreAdapter = new DatastoreAdapter(datastoreMock);
 
         SystemConfig systemConfig = createConfiguration();
-        InMemoryBuildQueue queue = new InMemoryBuildQueue(systemConfig);
+        DatabaseBackedBuildQueue queue = new DatabaseBackedBuildQueue(systemConfig, new BuildTaskDatastoreMock());
 
         BlockingQueue<BuildStatusChangedEvent> receivedStatuses = new ArrayBlockingQueue<>(5);
         Consumer<BuildStatusChangedEvent> onStatusUpdate = receivedStatuses::add;

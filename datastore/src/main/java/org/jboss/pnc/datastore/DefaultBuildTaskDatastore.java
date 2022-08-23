@@ -20,7 +20,6 @@ package org.jboss.pnc.datastore;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,8 +157,8 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
         entityManager
                 .createQuery(
                         "update BuildTask t set t.status = :targetState where t.status = :currentState and 0 = ("
-                                + "   select count(d) from t.dependencies d join BuildTask depTask on depTask.id = d " +
-                                "where depTask.status in :unfinishedStates)")
+                                + "   select count(d) from t.dependencies d join BuildTask depTask on depTask.id = d "
+                                + "where depTask.status in :unfinishedStates)")
                 .setParameter("targetState", BuildCoordinationStatus.ENQUEUED)
                 .setParameter("currentState", BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES)
                 .setParameter("unfinishedStates", UNFINISHED_OR_FAILED_STATES)
@@ -189,15 +188,16 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
 
     @Override
     public boolean areDependenciesBuilt(BuildTask task) {
-        return entityManager.createQuery("select count(d) from BuildTask t join t.dependencies d join BuildTask depTask on depTask.id = d " +
-                                               "where depTask.status in :unfinishedStates", Integer.class)
-                .getSingleResult() == 0;
+        return entityManager.createQuery(
+                "select count(d) from BuildTask t join t.dependencies d join BuildTask depTask on depTask.id = d "
+                        + "where depTask.status in :unfinishedStates",
+                Integer.class).getSingleResult() == 0;
     }
 
     @Override
     public List<BuildTask> getBuildTasksByBCSRId(Integer buildConfigSetRecordId) {
-        return entityManager.createQuery(
-                "select bt from BuildTask bt where bt.buildConfigSetRecord.id = :setId", BuildTask.class)
+        return entityManager
+                .createQuery("select bt from BuildTask bt where bt.buildConfigSetRecord.id = :setId", BuildTask.class)
                 .setParameter("setId", buildConfigSetRecordId)
                 .getResultList();
     }

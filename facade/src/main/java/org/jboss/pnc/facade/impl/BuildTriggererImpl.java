@@ -110,7 +110,7 @@ public class BuildTriggererImpl implements BuildTriggerer {
         throwCoreExceptionIfInMaintenanceModeAndNonSystemUser();
 
         BuildSetTask result = doTriggerGroupBuild(groupConfigId, revs, buildOptions);
-        return result.getBuildConfigSetRecordId();
+        return result.getBuildConfigSetRecord().getId();
     }
 
     @Override

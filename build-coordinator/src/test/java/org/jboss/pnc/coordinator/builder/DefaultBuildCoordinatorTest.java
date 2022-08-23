@@ -26,6 +26,7 @@ import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.enums.RebuildMode;
 import org.jboss.pnc.mapper.api.BuildMapper;
 import org.jboss.pnc.mapper.api.GroupBuildMapper;
+import org.jboss.pnc.mock.datastore.BuildTaskDatastoreMock;
 import org.jboss.pnc.mock.model.BuildEnvironmentMock;
 import org.jboss.pnc.mock.model.MockUser;
 import org.jboss.pnc.mock.model.RepositoryConfigurationMock;
@@ -136,7 +137,7 @@ public class DefaultBuildCoordinatorTest {
     private BuildSchedulerFactory buildSchedulerFactory;
 
     // mstodo replace with DB one
-    private InMemoryBuildQueue buildQueue;
+    private DatabaseBackedBuildQueue buildQueue;
     @Mock
     private SystemConfig systemConfig;
     @Mock
@@ -159,7 +160,7 @@ public class DefaultBuildCoordinatorTest {
         when(systemConfig.getTemporaryBuildsLifeSpan()).thenReturn(14);
         when(systemConfig.getCoordinatorThreadPoolSize()).thenReturn(1);
         when(systemConfig.getCoordinatorMaxConcurrentBuilds()).thenReturn(10);
-        buildQueue = new InMemoryBuildQueue(systemConfig);
+        buildQueue = new DatabaseBackedBuildQueue(systemConfig, new BuildTaskDatastoreMock());
         buildQueue.initSemaphore();
         when(
                 datastore.requiresRebuild(
@@ -218,7 +219,9 @@ public class DefaultBuildCoordinatorTest {
                 .build();
 
         BuildSetTask bsTask = coordinator.build(bcSet, USER, BUILD_OPTIONS);
-        assertThat(bsTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst().get().getStatus()).isEqualTo(BuildStatus.NO_REBUILD_REQUIRED);
+        assertThat(
+                bsTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst().get().getStatus())
+                        .isEqualTo(BuildStatus.REJECTED);
     }
 
     @Test
@@ -256,7 +259,9 @@ public class DefaultBuildCoordinatorTest {
 
         BuildSetTask bsTask = coordinator.build(BCS, USER, BUILD_OPTIONS);
         coordinator.start();
-        assertThat(bsTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst().get().getStatus()).isEqualTo(BuildStatus.NO_REBUILD_REQUIRED);
+        assertThat(
+                bsTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst().get().getStatus())
+                        .isEqualTo(BuildStatus.NO_REBUILD_REQUIRED);
 
         Wait.forCondition(() -> storedRecords.size() == 2, 3, ChronoUnit.SECONDS);
         assertThat(storedRecords.size()).isEqualTo(2);

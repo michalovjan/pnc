@@ -88,11 +88,8 @@ import static org.jboss.pnc.common.util.CollectionUtils.hasCycle;
 @ApplicationScoped
 public class DefaultBuildCoordinator implements BuildCoordinator {
 
-    private static final EnumMap<BuildSetStatus, BuildStatus> REJECTED_STATES = new EnumMap<>(BuildSetStatus.class);
-    static {
-        REJECTED_STATES.put(BuildSetStatus.REJECTED, BuildStatus.REJECTED);
-        REJECTED_STATES.put(BuildSetStatus.NO_REBUILD_REQUIRED, BuildStatus.NO_REBUILD_REQUIRED);
-    }
+    private static final EnumSet<BuildStatus> REJECTED_STATES = EnumSet
+            .of(BuildStatus.REJECTED, BuildStatus.NO_REBUILD_REQUIRED);
 
     private final Logger log = LoggerFactory.getLogger(DefaultBuildCoordinator.class);
     private static final Logger userLog = LoggerFactory
@@ -239,7 +236,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                     buildOptions,
                     this::buildRecordIdSupplier,
                     buildQueue.getUnfinishedTasks());
-            updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.NEW);
+            updateBuildSetTaskStatus(buildSetTask, BuildStatus.NEW);
 
             validateAndEnqueueBuildConfigurationSetTasks(buildConfigurationSet, buildOptions, buildSetTask);
             return buildSetTask;
@@ -277,7 +274,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                     buildOptions,
                     this::buildRecordIdSupplier,
                     buildQueue.getUnfinishedTasks());
-            updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.NEW);
+            updateBuildSetTaskStatus(buildSetTask, BuildStatus.NEW);
 
             validateAndEnqueueBuildConfigurationSetTasks(buildConfigurationSet, buildOptions, buildSetTask);
             return buildSetTask;
@@ -328,7 +325,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         if (requiresRebuild == 0) {
             updateBuildSetTaskStatus(
                     buildSetTask,
-                    BuildSetStatus.NO_REBUILD_REQUIRED,
+                    BuildStatus.NO_REBUILD_REQUIRED,
                     "All build configs were previously built");
         }
     }
@@ -337,7 +334,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         synchronized (buildMethodLock) {
             // if the set is rejected stop further processing but process when NO_REBUILD_REQUIRED to create build
             // records
-            if (!BuildSetStatus.REJECTED.equals(buildSetTask.getStatus())) {
+            if (!BuildStatus.REJECTED.equals(buildSetTask.getStatus())) {
                 // buildQueue.enqueueTaskSet(buildSetTask);
                 List<BuildTask> toSort = new ArrayList<>(buildSetTask.getBuildTasks());
                 // [NCLSUP-393] Don't use default Java Timsort because our Comparator method is not stable. We use
@@ -403,8 +400,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                 buildQueue.addReadyTask(buildTask);
                 ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.ENQUEUED.toString());
             } else {
-                updateBuildTaskStatus(buildTask, BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES);
                 buildQueue.addWaitingTask(buildTask);
+                updateBuildTaskStatus(buildTask, BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES);
                 ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES.toString());
             }
         } finally {
@@ -475,16 +472,16 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         log.debug("Cancelling Build Configuration Set: {}", buildSetTaskId);
         Collection<BuildTask> buildTasks = buildQueue.getBuildTasksByConfigSetRecordId(buildSetTaskId);
         buildTasks.forEach(buildTask -> {
-                    try {
-                        MDCUtils.addBuildContext(getMDCMeta(buildTask));
-                        log.debug("Received cancel request for buildTaskId: {}.", buildTask.getId());
-                        cancel(buildTask.getId());
-                    } catch (CoreException e) {
-                        log.error("Unable to cancel the build [" + buildTask.getId() + "].", e);
-                    } finally {
-                        MDCUtils.removeBuildContext();
-                    }
-                });
+            try {
+                MDCUtils.addBuildContext(getMDCMeta(buildTask));
+                log.debug("Received cancel request for buildTaskId: {}.", buildTask.getId());
+                cancel(buildTask.getId());
+            } catch (CoreException e) {
+                log.error("Unable to cancel the build [" + buildTask.getId() + "].", e);
+            } finally {
+                MDCUtils.removeBuildContext();
+            }
+        });
         record.setStatus(BuildStatus.CANCELLED);
         record.setEndTime(Date.from(Instant.now()));
         try {
@@ -532,7 +529,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
     private void checkForCyclicDependencies(BuildSetTask buildSetTask) {
         Set<BuildTask> buildTasks = buildSetTask.getBuildTasks();
         if (hasCycle(buildTasks, buildQueue::getDependencies)) {
-            updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.REJECTED, "Build config set has a cycle");
+            updateBuildSetTaskStatus(buildSetTask, BuildStatus.REJECTED, "Build config set has a cycle");
         }
     }
 
@@ -541,7 +538,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
      */
     private void checkForEmptyBuildSetTask(BuildSetTask buildSetTask) {
         if (buildSetTask.getBuildTasks() == null || buildSetTask.getBuildTasks().isEmpty()) {
-            updateBuildSetTaskStatus(buildSetTask, BuildSetStatus.REJECTED, "Build config set is empty");
+            updateBuildSetTaskStatus(buildSetTask, BuildStatus.REJECTED, "Build config set is empty");
         }
     }
 
@@ -560,7 +557,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             task.setStatus(status);
             task.setStatusDescription(statusDescription);
         }
-        task = buildQueue.refreshTask(task);
+        // task = buildQueue.refreshTask(task); // mstodo we may need it but then we need to defer removing from the
+        // queue (right now here the task is not found in the queue anymore)
         Build build = buildMapper.fromBuildTask(task);
         BuildStatusChangedEvent buildStatusChanged = new DefaultBuildStatusChangedEvent(
                 build,
@@ -585,40 +583,66 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         }
     }
 
-    private void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildSetStatus status) {
+    private void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildStatus status) {
         updateBuildSetTaskStatus(buildSetTask, status, null);
     }
 
-    public void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildSetStatus status, String description) {
-        Optional<BuildConfigSetRecord> buildConfigSetRecord =
-                Optional.ofNullable(buildSetTask.getBuildConfigSetRecord());
+    private void updateBuildSetTaskStatus(BuildSetTask buildSetTask, BuildStatus status, String description) {
+        Optional<BuildConfigSetRecord> buildConfigSetRecord = Optional
+                .ofNullable(buildSetTask.getBuildConfigSetRecord());
         log.info(
                 "Setting new status {} on buildConfigSetRecord.id {}. Description: {}.",
                 status,
                 buildConfigSetRecord.map(BuildConfigSetRecord::getId).orElse(null),
                 description);
-        BuildSetStatus oldStatus = buildSetTask.getStatus();
+        BuildStatus oldStatus = buildSetTask.getStatus();
 
         // Rejected status needs to be propagated to the BuildConfigSetRecord in database.
         // Completed BuildSets are updated using BuildSetTask#taskStatusUpdatedToFinalState()
-        if (buildConfigSetRecord.isPresent() && REJECTED_STATES.containsKey(status)) {
-            buildConfigSetRecord.get().setStatus(REJECTED_STATES.get(status));
+        if (buildConfigSetRecord.isPresent() && REJECTED_STATES.contains(status)) {
+            buildConfigSetRecord.get().setStatus(status);
             try {
                 datastoreAdapter.saveBuildConfigSetRecord(buildConfigSetRecord.get());
             } catch (DatastoreException de) {
                 log.warn("Failed to update build config set record to REJECTED status: " + de);
             }
         }
-        buildConfigSetRecord
-                .ifPresent(record -> sendSetStatusChangeEvent(status, oldStatus, record, description));
+        buildConfigSetRecord.ifPresent(record -> sendSetStatusChangeEvent(status, oldStatus, record, description));
 
         buildSetTask.setStatus(status);
         buildSetTask.setStatusDescription(description);
     }
 
+    public void updateBuildConfigSetRecordStatus(
+            BuildConfigSetRecord setRecord,
+            BuildStatus status,
+            String description) {
+        log.info(
+                "Setting new status {} on buildConfigSetRecord.id {}. Description: {}.",
+                status,
+                setRecord.getId(),
+                description);
+        BuildStatus oldStatus = setRecord.getStatus();
+
+        if (status.isFinal()) {
+            setRecord.setEndTime(new Date());
+        }
+        setRecord.setStatus(status);
+
+        // TODO: don't send the event if we haven't updated the row
+        // Completed BuildSets are updated using BuildSetTask#taskStatusUpdatedToFinalState()
+        try {
+            datastoreAdapter.saveBuildConfigSetRecord(setRecord);
+        } catch (DatastoreException de) {
+            log.warn("Failed to update build config set record to REJECTED status: " + de);
+        }
+
+        sendSetStatusChangeEvent(status, oldStatus, setRecord, description);
+    }
+
     private void sendSetStatusChangeEvent(
-            BuildSetStatus status,
-            BuildSetStatus oldStatus,
+            BuildStatus status,
+            BuildStatus oldStatus,
             BuildConfigSetRecord record,
             String description) {
         BuildSetStatusChangedEvent event = new DefaultBuildSetStatusChangedEvent(
@@ -835,7 +859,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
 
         dependants.stream()
                 .filter(t -> !t.getStatus().isCompleted())
-                .peek(t ->  log.debug("Finishing task {}, after failedTask {}.", t, failedTask))
+                .peek(t -> log.debug("Finishing task {}, after failedTask {}.", t, failedTask))
                 .forEach(t -> finishDueToFailedDependency(failedTask, t));
     }
 
@@ -847,7 +871,6 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             log.error("Unable to store rejected task.", e);
         }
     }
-
 
     private void finishDueToFailedDependency(BuildTask failedTask, BuildTask dependentTask) {
         log.debug("Finishing task {} due to a failed dependency.", dependentTask);

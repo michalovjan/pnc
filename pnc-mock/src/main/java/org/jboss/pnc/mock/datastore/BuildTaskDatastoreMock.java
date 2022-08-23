@@ -61,7 +61,8 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
                 .stream()
                 .filter(
                         t -> states.contains(t.getStatus())
-                                && t.getBuildConfigurationAudited().getId().equals(buildConfigAudited.getId()))
+                                && t.getBuildConfigurationAudited().getId().equals(buildConfigAudited.getId())
+                                && t.getBuildConfigurationAudited().getRev().equals(buildConfigAudited.getRev()))
                 .collect(Collectors.toList());
         switch (tasks.size()) {
             case 0:
@@ -161,7 +162,8 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
 
     @Override
     public List<BuildTask> getBuildTasksByBCSRId(Integer buildConfigSetRecordId) {
-        return tasks.values().stream()
+        return tasks.values()
+                .stream()
                 .filter(t -> t.getBuildConfigSetRecord().getId().equals(buildConfigSetRecordId))
                 .collect(Collectors.toList());
     }

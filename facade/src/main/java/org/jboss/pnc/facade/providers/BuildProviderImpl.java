@@ -157,7 +157,6 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
     private TemporaryBuildsCleanerAsyncInvoker temporaryBuildsCleanerAsyncInvoker;
     private ResultMapper resultMapper;
 
-
     @Inject
     public BuildProviderImpl(
             ArtifactRepository artifactRepository,
@@ -426,17 +425,15 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
 
     @Override
     public Page<Build> getBuildsForGroupConfiguration(BuildPageInfo pageInfo, String groupConfigurationId) {
-        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildSetTask() != null && t.getBuildSetTask()
-                .getBuildConfigSetRecord()
-                .map(gc -> Integer.valueOf(groupConfigurationId).equals(gc.getBuildConfigurationSet().getId()))
-                .orElse(false);
+        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildConfigSetRecord() != null
+                && Integer.valueOf(groupConfigurationId).equals(t.getBuildConfigSetRecord().getId());
         return getBuildList(pageInfo, predicate, withBuildConfigSetId(Integer.valueOf(groupConfigurationId)));
     }
 
     @Override
     public Page<Build> getBuildsForGroupBuild(BuildPageInfo pageInfo, String groupBuildId) {
-        java.util.function.Predicate<BuildTask> predicate = t ->
-                t.getBuildConfigSetRecordId() != null && t.getBuildConfigSetRecordId() == Integer.parseInt(groupBuildId);
+        java.util.function.Predicate<BuildTask> predicate = t -> t.getBuildConfigSetRecordId() != null
+                && t.getBuildConfigSetRecordId() == Integer.parseInt(groupBuildId);
         return getBuildList(pageInfo, predicate, withBuildConfigSetRecordId(Integer.valueOf(groupBuildId)));
     }
 
@@ -468,12 +465,12 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
      * @return Running and completed build ids from the Build Group.
      */
     private List<String> getBuildIdsInTheGroup(BuildConfigSetRecord buildConfigSetRecord) {
-        List<BuildTask> runningTasks = buildQueue.getBuildTasksByConfigSetRecordId(buildConfigSetRecord.getId());
+        Collection<BuildTask> runningTasks = buildQueue.getBuildTasksByConfigSetRecordId(buildConfigSetRecord.getId());
         List<String> runningAndStoredIds = new ArrayList<>();
         runningTasks.stream()
-                    .sorted(Comparator.comparing(bt -> bt.getBuildConfigurationAudited().getName()))
-                    .map(BuildTask::getId)
-                    .forEach(runningAndStoredIds::add);
+                .sorted(Comparator.comparing(bt -> bt.getBuildConfigurationAudited().getName()))
+                .map(BuildTask::getId)
+                .forEach(runningAndStoredIds::add);
 
         Set<String> storedBuildIds = buildConfigSetRecord.getBuildRecords()
                 .stream()

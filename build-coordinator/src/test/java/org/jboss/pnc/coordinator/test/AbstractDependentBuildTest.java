@@ -26,14 +26,15 @@ import org.jboss.pnc.common.json.moduleprovider.PncConfigProvider;
 import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.coordinator.builder.BuildSchedulerFactory;
+import org.jboss.pnc.coordinator.builder.DatabaseBackedBuildQueue;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
-import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.datastore.DefaultDatastore;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.enums.RebuildMode;
 import org.jboss.pnc.mapper.api.BuildMapper;
 import org.jboss.pnc.mapper.api.GroupBuildMapper;
+import org.jboss.pnc.mock.datastore.BuildTaskDatastoreMock;
 import org.jboss.pnc.mock.model.BuildEnvironmentMock;
 import org.jboss.pnc.mock.model.RepositoryConfigurationMock;
 import org.jboss.pnc.mock.repository.ArtifactRepositoryMock;
@@ -134,7 +135,9 @@ public abstract class AbstractDependentBuildTest {
         when(systemConfig.getTemporaryBuildsLifeSpan()).thenReturn(1);
         when(config.getModuleConfig(any())).thenReturn(systemConfig);
 
-        buildQueue = new InMemoryBuildQueue(config.getModuleConfig(new PncConfigProvider<>(SystemConfig.class)));
+        buildQueue = new DatabaseBackedBuildQueue(
+                config.getModuleConfig(new PncConfigProvider<>(SystemConfig.class)),
+                new BuildTaskDatastoreMock());
 
         if (buildConfigurationRepository == null) {
             buildConfigurationRepository = new BuildConfigurationRepositoryMock();
@@ -167,8 +170,8 @@ public abstract class AbstractDependentBuildTest {
                 systemConfig,
                 mock(GroupBuildMapper.class),
                 mock(BuildMapper.class));
-        if (buildQueue instanceof InMemoryBuildQueue) {
-            ((InMemoryBuildQueue) buildQueue).initSemaphore();
+        if (buildQueue instanceof DatabaseBackedBuildQueue) {
+            ((DatabaseBackedBuildQueue) buildQueue).initSemaphore();
         }
         coordinator.start();
     }

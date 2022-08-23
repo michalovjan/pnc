@@ -41,7 +41,6 @@ import org.jboss.pnc.model.User;
 import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.BuildResult;
-import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.builddriver.BuildDriverResult;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
@@ -130,7 +129,7 @@ public class StatusUpdatesTest {
         this.waitForConditionWithTimeout(() -> buildTasks.stream().allMatch(task -> task.getStatus().isCompleted()), 4);
 
         Assert.assertNotNull("Did not receive build set status update.", receivedBuildSetStatusChangedEvent.get());
-        Assert.assertEquals(BuildSetStatus.DONE, receivedBuildSetStatusChangedEvent.get().getNewStatus());
+        Assert.assertEquals(BuildStatus.SUCCESS, receivedBuildSetStatusChangedEvent.get().getNewStatus());
     }
 
     @Test

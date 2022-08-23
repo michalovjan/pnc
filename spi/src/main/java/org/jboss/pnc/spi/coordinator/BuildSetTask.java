@@ -19,20 +19,17 @@ package org.jboss.pnc.spi.coordinator;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.model.BuildConfigSetRecord;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.BuildSetStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +46,7 @@ public class BuildSetTask {
     @Getter
     private BuildOptions buildOptions;
 
-    private BuildSetStatus status;
+    private BuildStatus status;
 
     private String statusDescription;
 
@@ -71,41 +68,8 @@ public class BuildSetTask {
         this.buildOptions = buildOptions;
     }
 
-    public void setStatus(BuildSetStatus status) {
+    public void setStatus(BuildStatus status) {
         this.status = status;
-    }
-
-    /**
-     * Notify the set that the state of one of it's tasks has changed.
-     *
-     */
-    public void taskStatusUpdatedToFinalState(Consumer<BuildStatus> buildSetStatusChangeListener) {
-        // If any of the build tasks have failed or all are complete, then the build set is done
-        if (buildTasks.stream().anyMatch(bt -> bt.getStatus().equals(BuildCoordinationStatus.CANCELLED))) {
-            log.debug("Marking build set as CANCELLED as one or more tasks were cancelled. BuildSetTask: {}", this);
-            if (log.isDebugEnabled()) {
-                logTasksStatus(buildTasks);
-            }
-            buildSetStatusChangeListener.accept(BuildStatus.CANCELLED);
-        } else if (buildTasks.stream().anyMatch(bt -> bt.getStatus().hasFailed())) {
-            log.debug("Marking build set as FAILED as one or more tasks failed. BuildSetTask: {}", this);
-            if (log.isDebugEnabled()) {
-                logTasksStatus(buildTasks);
-            }
-            buildSetStatusChangeListener.accept(BuildStatus.FAILED);
-        } else if (buildTasks.stream().allMatch(bt -> bt.getStatus().isCompleted())) {
-            log.debug("All builds in set completed. BuildSetTask: {}", this);
-            buildSetStatusChangeListener.accept(BuildStatus.SUCCESS);
-        } else {
-            if (log.isTraceEnabled()) {
-                String running = buildTasks.stream()
-                        .filter(bt -> !bt.getStatus().isCompleted())
-                        .filter(bt -> !bt.getStatus().hasFailed())
-                        .map(BuildTask::getId)
-                        .collect(Collectors.joining(", "));
-                log.trace("There are still running or waiting builds [{}].", running);
-            }
-        }
     }
 
     private void logTasksStatus(Set<BuildTask> buildTasks) {
@@ -115,7 +79,7 @@ public class BuildSetTask {
         log.debug("Tasks statuses: {}", taskStatuses);
     }
 
-    public BuildSetStatus getStatus() {
+    public BuildStatus getStatus() {
         return status;
     }
 

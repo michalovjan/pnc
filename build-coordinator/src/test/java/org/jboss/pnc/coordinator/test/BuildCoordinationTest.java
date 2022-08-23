@@ -34,7 +34,6 @@ import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.datastore.DatastoreException;
@@ -97,7 +96,7 @@ public class BuildCoordinationTest {
         BuildConfigurationSet buildConfigurationSet = TestEntitiesFactory.newBuildConfigurationSet();
         testProjectConfigurationBuilder.build(223, "Project-223", buildConfigurationSet);
 
-        ObjectWrapper<BuildSetStatus> lastBuildSetStatus = registerCallback(buildConfigurationSet);
+        ObjectWrapper<BuildStatus> lastBuildSetStatus = registerCallback(buildConfigurationSet);
 
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.setRebuildMode(RebuildMode.IMPLICIT_DEPENDENCY_CHECK);
@@ -107,8 +106,11 @@ public class BuildCoordinationTest {
         Wait.forCondition(lastBuildSetStatus::isSet, 5, ChronoUnit.SECONDS);
 
         // check the result
-        Assert.assertEquals(BuildSetStatus.DONE, lastBuildSetStatus.get());
-        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst();
+        Assert.assertEquals(BuildStatus.SUCCESS, lastBuildSetStatus.get());
+        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks()
+                .stream()
+                .map(BuildTask::getBuildConfigSetRecord)
+                .findFirst();
         assertThat(maybeSetRecord.isPresent()).isTrue();
         Assert.assertEquals(BuildStatus.SUCCESS, maybeSetRecord.get().getStatus());
         assertEmptyQueue();
@@ -120,7 +122,7 @@ public class BuildCoordinationTest {
         BuildConfigurationSet buildConfigurationSet = TestEntitiesFactory.newBuildConfigurationSet();
         testProjectConfigurationBuilder.buildConfigurationWithDependencies(buildConfigurationSet);
 
-        ObjectWrapper<BuildSetStatus> lastBuildSetStatus = registerCallback(buildConfigurationSet);
+        ObjectWrapper<BuildStatus> lastBuildSetStatus = registerCallback(buildConfigurationSet);
 
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.setRebuildMode(RebuildMode.FORCE);
@@ -130,8 +132,11 @@ public class BuildCoordinationTest {
         Wait.forCondition(lastBuildSetStatus::isSet, 5, ChronoUnit.SECONDS);
 
         // check the result
-        Assert.assertEquals(BuildSetStatus.DONE, lastBuildSetStatus.get());
-        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst();
+        Assert.assertEquals(BuildStatus.SUCCESS, lastBuildSetStatus.get());
+        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks()
+                .stream()
+                .map(BuildTask::getBuildConfigSetRecord)
+                .findFirst();
         assertThat(maybeSetRecord.isPresent()).isTrue();
         Assert.assertEquals(BuildStatus.SUCCESS, maybeSetRecord.get().getStatus());
         assertEmptyQueue();
@@ -143,7 +148,7 @@ public class BuildCoordinationTest {
         BuildConfigurationSet buildConfigurationSet = TestEntitiesFactory.newBuildConfigurationSet();
         testProjectConfigurationBuilder.buildConfigurationWithDependenciesThatFail(buildConfigurationSet);
 
-        ObjectWrapper<BuildSetStatus> lastBuildSetStatus = registerCallback(buildConfigurationSet);
+        ObjectWrapper<BuildStatus> lastBuildSetStatus = registerCallback(buildConfigurationSet);
 
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.setRebuildMode(RebuildMode.FORCE);
@@ -153,10 +158,13 @@ public class BuildCoordinationTest {
         Wait.forCondition(lastBuildSetStatus::isSet, 5, ChronoUnit.SECONDS);
 
         // check the result
-        Assert.assertEquals(BuildSetStatus.DONE, lastBuildSetStatus.get());
+        Assert.assertEquals(BuildStatus.FAILED, lastBuildSetStatus.get());
         datastoreMock.getBuildConfigSetRecordById(buildConfigurationSet.getId());
 
-        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst();
+        Optional<BuildConfigSetRecord> maybeSetRecord = buildSetTask.getBuildTasks()
+                .stream()
+                .map(BuildTask::getBuildConfigSetRecord)
+                .findFirst();
         assertThat(maybeSetRecord.isPresent()).isTrue();
         Assert.assertEquals(BuildStatus.FAILED, maybeSetRecord.get().getStatus());
         Collection<BuildStatus> statuses = getBuildStatuses();
@@ -188,12 +196,12 @@ public class BuildCoordinationTest {
         buildCoordinator.build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
 
         Wait.forCondition(
-                () -> contains(buildSetStatusChangedEvents, BuildSetStatus.NEW),
+                () -> contains(buildSetStatusChangedEvents, BuildStatus.NEW),
                 2000,
                 ChronoUnit.MILLIS,
                 () -> "Did not receive status update to NEW for task set. Received: " + buildSetStatusChangedEvents);
         Wait.forCondition(
-                () -> contains(buildSetStatusChangedEvents, BuildSetStatus.DONE),
+                () -> contains(buildSetStatusChangedEvents, BuildStatus.SUCCESS),
                 5000,
                 ChronoUnit.MILLIS,
                 () -> "Did not receive status update to DONE for task set. Received: " + buildSetStatusChangedEvents);
@@ -208,7 +216,7 @@ public class BuildCoordinationTest {
         }
     }
 
-    private boolean contains(Set<BuildSetStatusChangedEvent> buildSetStatusChangedEvents, BuildSetStatus status) {
+    private boolean contains(Set<BuildSetStatusChangedEvent> buildSetStatusChangedEvents, BuildStatus status) {
         return buildSetStatusChangedEvents.stream()
                 .anyMatch((buildSetStatusChangedEvent) -> buildSetStatusChangedEvent.getNewStatus().equals(status));
     }
@@ -217,11 +225,11 @@ public class BuildCoordinationTest {
         return datastoreMock.getBuildRecords().stream().map(BuildRecord::getStatus).collect(Collectors.toSet());
     }
 
-    private ObjectWrapper<BuildSetStatus> registerCallback(BuildConfigurationSet buildConfigurationSet) {
-        ObjectWrapper<BuildSetStatus> lastBuildSetStatus = new ObjectWrapper<>();
+    private ObjectWrapper<BuildStatus> registerCallback(BuildConfigurationSet buildConfigurationSet) {
+        ObjectWrapper<BuildStatus> lastBuildSetStatus = new ObjectWrapper<>();
 
         Consumer<BuildSetStatusChangedEvent> onStatusUpdate = (statusChangedEvent) -> {
-            if (statusChangedEvent.getNewStatus().isCompleted()) {
+            if (statusChangedEvent.getNewStatus().isFinal()) {
                 lastBuildSetStatus.set(statusChangedEvent.getNewStatus());
             }
         };

@@ -21,16 +21,18 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
 import org.jboss.pnc.dto.Build;
+import org.jboss.pnc.dto.GroupBuild;
+import org.jboss.pnc.dto.GroupConfigurationRef;
+import org.jboss.pnc.dto.User;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.integration.setup.Deployments;
 import org.jboss.pnc.mock.dto.BuildMock;
 import org.jboss.pnc.rest.endpoints.notifications.NotificationsEndpoint;
 import org.jboss.pnc.rest.jackson.JacksonProvider;
-import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.coordinator.events.DefaultBuildSetStatusChangedEvent;
 import org.jboss.pnc.spi.coordinator.events.DefaultBuildStatusChangedEvent;
-import org.jboss.pnc.spi.events.BuildStatusChangedEvent;
 import org.jboss.pnc.spi.events.BuildSetStatusChangedEvent;
+import org.jboss.pnc.spi.events.BuildStatusChangedEvent;
 import org.jboss.pnc.spi.notifications.Notifier;
 import org.jboss.pnc.test.category.ContainerTest;
 import org.jboss.pnc.test.util.Wait;
@@ -53,9 +55,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.jboss.pnc.dto.GroupBuild;
-import org.jboss.pnc.dto.GroupConfigurationRef;
-import org.jboss.pnc.dto.User;
+
 import static org.jboss.pnc.integration.setup.RestClientConfiguration.NOTIFICATION_PATH;
 
 @RunWith(Arquillian.class)
@@ -133,8 +133,8 @@ public class WebSocketsNotificationTest {
                 .build();
 
         BuildSetStatusChangedEvent buildStatusChangedEvent = new DefaultBuildSetStatusChangedEvent(
-                BuildSetStatus.NEW,
-                BuildSetStatus.DONE,
+                BuildStatus.NEW,
+                BuildStatus.SUCCESS,
                 groupBuild,
                 "description");
         String groupBuildString = mapperProvider.getMapper().writeValueAsString(groupBuild);

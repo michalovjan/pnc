@@ -19,10 +19,11 @@
 package org.jboss.pnc.coordinator.test;
 
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
+import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.coordinator.builder.BuildSchedulerFactory;
+import org.jboss.pnc.coordinator.builder.DatabaseBackedBuildQueue;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
-import org.jboss.pnc.coordinator.builder.InMemoryBuildQueue;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.coordinator.builder.local.LocalBuildScheduler;
 import org.jboss.pnc.mapper.api.BuildMapper;
@@ -51,13 +52,15 @@ public class BuildCoordinatorFactory {
     private GroupBuildMapper groupBuildMapper;
 
     @Inject
+    BuildQueue buildQueue;
+
+    @Inject
     private BuildMapper buildMapper;
 
     public BuildCoordinatorBeans createBuildCoordinator(DatastoreMock datastore) {
         DatastoreAdapter datastoreAdapter = new DatastoreAdapter(datastore);
 
         SystemConfig systemConfig = createConfiguration();
-        InMemoryBuildQueue queue = new InMemoryBuildQueue(systemConfig);
 
         LocalBuildSchedulerMock localBuildScheduler = new LocalBuildSchedulerMock();
 
@@ -72,14 +75,14 @@ public class BuildCoordinatorFactory {
                 buildStatusChangedEventNotifier,
                 buildSetStatusChangedEventNotifier,
                 buildSchedulerFactory,
-                queue,
+                buildQueue,
                 systemConfig,
                 groupBuildMapper,
                 buildMapper);
         localBuildScheduler.setBuildCoordinator(coordinator);
         coordinator.start();
-        queue.initSemaphore();
-        return new BuildCoordinatorBeans(queue, coordinator);
+        ((DatabaseBackedBuildQueue) buildQueue).initSemaphore();
+        return new BuildCoordinatorBeans(buildQueue, coordinator);
     }
 
     private SystemConfig createConfiguration() {

@@ -2,13 +2,13 @@
  * JBoss, Home of Professional Open Source.
  * Copyright 2014-2022 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -63,7 +63,7 @@ public class BuildTask {
     private Integer buildConfigRev;
 
     @Getter
-    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
+    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
     private BuildOptions buildOptions;
 
     @ManyToOne
@@ -91,7 +91,7 @@ public class BuildTask {
      * A list of builds waiting for this build to complete.
      */
 
-//    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH }, fetch = FetchType.EAGER)
+    // @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH }, fetch = FetchType.EAGER)
 
     @ManyToMany
     private final Set<BuildTask> dependants = new HashSet<>();
@@ -100,12 +100,12 @@ public class BuildTask {
      * The builds which must be completed before this build can start
      */
     @ManyToMany(mappedBy = "dependants", fetch = FetchType.EAGER)
-//    @ElementCollection
+    // @ElementCollection
     private Set<BuildTask> dependencies = new HashSet<>();
 
     @ManyToOne
     @Getter
-    private BuildConfigSetRecord buildConfigSetRecord; //mstodo
+    private BuildConfigSetRecord buildConfigSetRecord; // mstodo
 
     @ManyToOne
     private ProductMilestone productMilestone;
@@ -175,7 +175,7 @@ public class BuildTask {
     public void addDependency(BuildTask buildTask) {
         if (!dependencies.contains(buildTask)) {
             dependencies.add(buildTask);
-            buildTask.addDependency(buildTask);
+            buildTask.dependants.add(this);
         }
     }
 
@@ -305,7 +305,8 @@ public class BuildTask {
     public Integer getBuildConfigSetRecordId() {
         return buildConfigSetRecord.getId();
     }
-    /*mstodo remove
+    /*
+     * mstodo remove
      */
 
     /**
@@ -313,14 +314,9 @@ public class BuildTask {
      *
      * @return true if already built, false otherwise
      *//*
-    public boolean readyToBuild() {
-        for (String buildTask : dependencies) {
-            if (!buildTask.getStatus().isCompleted()) {
-                return false;
-            }
-        }
-        return true;
-    }*/
+        * public boolean readyToBuild() { for (String buildTask : dependencies) { if
+        * (!buildTask.getStatus().isCompleted()) { return false; } } return true; }
+        */
     @Override
     public String toString() {
         return "Build Task id:" + id + ", name: " + getBuildConfigurationAudited().getName() + ", project name: "

@@ -560,19 +560,21 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
     @Test
     public void shouldGetGraphWithDependencies() {
         // With
-        long buildSetTaskId = 1L;
+        Integer configSetRecordId = 1;
         BuildSetTask buildSetTask = mock(BuildSetTask.class);
-        when(buildSetTask.getId()).thenReturn(buildSetTaskId);
+        BuildConfigSetRecord setRecord = mock(BuildConfigSetRecord.class);
+        when(setRecord.getId()).thenReturn(configSetRecordId);
+        when(buildSetTask.getBuildConfigSetRecord()).thenReturn(setRecord);
 
         BuildTask task = mockBuildTaskWithSet(buildSetTask);
         BuildTask taskDep = mockBuildTaskWithSet(buildSetTask);
         BuildTask taskDepDep = mockBuildTaskWithSet(buildSetTask);
 
-        when(task.getDependencies()).thenReturn(Collections.singleton(taskDep.getId()));
-        when(taskDep.getDependencies()).thenReturn(Collections.singleton(taskDepDep.getId()));
+        when(task.getDependencies()).thenReturn(Collections.singleton(taskDep));
+        when(taskDep.getDependencies()).thenReturn(Collections.singleton(taskDepDep));
 
         // When
-        Graph<Build> graph = provider.getBuildGraphForGroupBuild(Long.toString(buildSetTaskId));
+        Graph<Build> graph = provider.getBuildGraphForGroupBuild(Long.toString(configSetRecordId));
 
         // Then
         assertThat(graph.getVertices()).hasSize(3);
@@ -603,7 +605,7 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
         BuildTask bt110000 = mock(BuildTask.class);
         when(bt110000.getId()).thenReturn("110000");
         when(bt110000.getDependencies()).thenReturn(Collections.emptySet());
-        when(bt110000.getDependants()).thenReturn(Collections.singleton(bt100002.getId()));
+        when(bt110000.getDependants()).thenReturn(Collections.singleton(bt100002));
         runningBuilds.add(bt110000);
 
         mockBuildRecord(new Base32LongID(100000L), new Long[] { 100002L }, new Long[] {});
@@ -710,7 +712,7 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
 
     private BuildTask mockBuildTaskWithSet(BuildSetTask buildSetTask) {
         BuildTask task = mockBuildTask();
-        when(task.getBuildConfigSetRecordId()).thenReturn(buildSetTask.getId());
+        when(task.getBuildConfigSetRecordId()).thenReturn(buildSetTask.getBuildConfigSetRecord().getId());
         when(task.getUser()).thenReturn(mock(User.class));
         return task;
     }

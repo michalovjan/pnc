@@ -21,7 +21,6 @@ import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +35,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 //mstodo
 
@@ -78,12 +76,12 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
 
     private final Semaphore availableBuildSlots = new Semaphore(0);
 
-    @Inject
     private BuildTaskDatastore datastore;
 
     @Inject
-    public DatabaseBackedBuildQueue(SystemConfig systemConfig) {
+    public DatabaseBackedBuildQueue(SystemConfig systemConfig, BuildTaskDatastore datastore) {
         this.systemConfig = systemConfig;
+        this.datastore = datastore;
     }
 
     private Consumer<BuildTask> onTaskReady;

@@ -31,7 +31,6 @@ import org.jboss.pnc.model.BuildConfiguration;
 import org.jboss.pnc.model.BuildConfigurationSet;
 import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.BuildSetStatus;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
 import org.jboss.pnc.spi.datastore.DatastoreException;
@@ -46,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -329,11 +327,10 @@ public class ProjectBuilder {
     }
 
     private void assertBuildStartedSuccessfully(BuildSetTask buildSetTask) {
-        List<BuildSetStatus> errorStates = Collections.singletonList(BuildSetStatus.REJECTED);
-        if (errorStates.contains(buildSetTask.getStatus())) {
+        if (buildSetTask.getStatus().isFinal() && !buildSetTask.getStatus().completedSuccessfully()) {
             fail(
-                    "Build " + buildSetTask.getBuildConfigSetRecordId() + " has status:" + buildSetTask.getStatus() + " with description: "
-                            + buildSetTask.getStatusDescription());
+                    "Build " + buildSetTask.getBuildConfigSetRecord().getId() + " has status:"
+                            + buildSetTask.getStatus() + " with description: " + buildSetTask.getStatusDescription());
         }
     }
 
