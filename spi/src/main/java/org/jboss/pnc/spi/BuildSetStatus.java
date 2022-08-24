@@ -17,11 +17,14 @@
  */
 package org.jboss.pnc.spi;
 
+import org.jboss.pnc.enums.BuildStatus;
+
 /**
  * Status represent the status of the BuildSet has in the BuildCoordinator.
  *
  * Created by <a href="mailto:matejonnet@gmail.com">Matej Lazar</a> on 2015-05-15.
  */
+// mstodo can be removed
 public enum BuildSetStatus {
     NEW,
     DONE(true),

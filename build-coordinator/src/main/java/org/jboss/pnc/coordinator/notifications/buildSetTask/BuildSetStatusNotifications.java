@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-// TODO remove in the future and verify not used anymore
+// mstodo remove in the future and verify not used anymore
 @ApplicationScoped
 public class BuildSetStatusNotifications {
 

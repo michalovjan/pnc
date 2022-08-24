@@ -34,8 +34,12 @@ import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Singleton
+@Slf4j
+// TODO: make it run on a single instance if easily doable
 public class SetRecordUpdateJob {
 
     @Inject
@@ -116,6 +120,26 @@ public class SetRecordUpdateJob {
                 .collect(Collectors.toSet());
 
         return determineStatus(buildStatuses);
+    }
+
+    private BuildStatus determineStatus(Set<BuildStatus> statuses) {
+        if (statuses.stream().anyMatch(status -> !status.isFinal())) {
+            return BuildStatus.BUILDING;
+        }
+
+        if (statuses.contains(BuildStatus.CANCELLED)) {
+            return BuildStatus.CANCELLED;
+        }
+
+        if (statuses.size() == 1 && statuses.contains(BuildStatus.NO_REBUILD_REQUIRED)) {
+            return BuildStatus.NO_REBUILD_REQUIRED;
+        }
+
+        if (statuses.stream().allMatch(BuildStatus::completedSuccessfully)) {
+            return BuildStatus.SUCCESS;
+        }
+
+        return BuildStatus.FAILED;
     }
 
     private void updateConfigSetRecordStatus(BuildConfigSetRecord setRecord, BuildStatus effectiveState) {
