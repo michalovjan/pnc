@@ -219,9 +219,7 @@ public class DefaultBuildCoordinatorTest {
                 .build();
 
         BuildSetTask bsTask = coordinator.build(bcSet, USER, BUILD_OPTIONS);
-        assertThat(
-                bsTask.getBuildTasks().stream().map(BuildTask::getBuildConfigSetRecord).findFirst().get().getStatus())
-                        .isEqualTo(BuildStatus.REJECTED);
+        assertThat(bsTask.getBuildConfigSetRecord().getStatus()).isEqualTo(BuildStatus.REJECTED);
     }
 
     @Test

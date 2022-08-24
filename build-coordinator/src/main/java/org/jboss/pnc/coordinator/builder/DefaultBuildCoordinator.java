@@ -321,7 +321,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                 requiresRebuild--;
             }
         }
-        if (requiresRebuild == 0) {
+        if (!buildConfigurations.isEmpty() && requiresRebuild == 0) {
             updateBuildSetTaskStatus(
                     buildSetTask,
                     BuildStatus.NO_REBUILD_REQUIRED,
