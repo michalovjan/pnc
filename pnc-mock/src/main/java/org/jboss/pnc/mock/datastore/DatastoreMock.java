@@ -84,6 +84,7 @@ public class DatastoreMock implements Datastore {
                                 + "] already exists.");
             }
             buildRecords.add(buildRecord);
+            log.debug("[{}]Build records after storing: {}", this.hashCode(), buildRecords);
         }
         return buildRecord;
     }
@@ -102,6 +103,7 @@ public class DatastoreMock implements Datastore {
     }
 
     public List<BuildRecord> getBuildRecords() {
+        log.info("[{}]Getting build records {}", this.hashCode(), buildRecords); // mstodo remove
         return new ArrayList<>(buildRecords); // avoid concurrent modification exception
     }
 
@@ -184,6 +186,7 @@ public class DatastoreMock implements Datastore {
     }
 
     public void clear() {
+        log.info("Clearing build records");
         buildRecords.clear();
         buildConfigSetRecords.clear();
         buildConfigurations.clear();

@@ -2,13 +2,13 @@
  * JBoss, Home of Professional Open Source.
  * Copyright 2014-2022 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -173,7 +173,7 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
         while (true) {
             Optional<BuildTask> task = datastore.getFirstTaskInState(BuildCoordinationStatus.ENQUEUED);
             if (!task.isPresent()) {
-                log.debug("Didn't get a task to start, let's wait and try again in a moment");
+                log.trace("Didn't get a task to start, let's wait and try again in a moment");
                 // mstodo configurable wait
                 Thread.sleep(50L); // no ready tasks found, let's take some rest
                 // and try to find new ready tasks:
@@ -282,15 +282,20 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     // + ", tasksInProgress=" + tasksInProgress + ", taskSets=" + taskSets + '}';
     // }
     //
-    // public synchronized String getDebugInfo() {
+    // @Override
+    // public String getDebugInfo() {
+    // Collection<BuildTask> tasks = datastore.getAll();
     // String info = "=====================\nQUEUE STATE:\n=====================\n" + "Available build slots: "
     // + availableBuildSlots.availablePermits() + "\n" + "Queue length:" + availableBuildSlots.getQueueLength()
-    // + "\n" + "\n=====================\nTASKS IN PROGRESS:\n=====================\n" + tasksInProgress
-    // + "\n=====================\nREADY TASKS:\n=====================\n" + readyTasks
+    // + "\n" + "\n=====================\nTASKS IN PROGRESS:\n=====================\n" +
+    // tasks.stream().filter(t -> t.getStatus() == BuildCoordinationStatus.BUILDING).collect(Collectors.toList())
+    // + "\n=====================\nREADY TASKS:\n=====================\n" +
+    // tasks.stream().filter(t -> t.getStatus() == BuildCoordinationStatus.ENQUEUED).collect(Collectors.toList())
     // + "\n=====================\nWAITING TASKS:\n=====================\n"
-    // + waitingTasksWithCallbacks.keySet()
-    // + "\n=====================\nALL UNFINISHED TASKS:\n=====================\n" + unfinishedTasks
-    // + "\n=====================\nTASK SETS:\n=====================\n" + taskSets;
+    // + tasks.stream().filter(t -> t.getStatus() ==
+    // BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES).collect(Collectors.toList())
+    // + "\n=====================\nALL UNFINISHED TASKS:\n=====================\n" +
+    // tasks.stream().filter(t -> !t.getStatus().isCompleted()).collect(Collectors.toList());
     //
     // return info;
     // }

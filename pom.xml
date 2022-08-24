@@ -146,6 +146,7 @@
 
     <!-- Integration tests -->
     <app.server>jboss-eap</app.server>
+    <awaitility.version>4.2.0</awaitility.version>
     <jboss.version>7.3</jboss.version>
     <default.management.port>9999</default.management.port>
     <test.server.unpack.dir>${project.basedir}/target</test.server.unpack.dir>
@@ -871,6 +872,13 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>${version.junit}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>${awaitility.version}</version>
         <scope>test</scope>
       </dependency>
 

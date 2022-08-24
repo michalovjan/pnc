@@ -21,6 +21,7 @@ import org.jboss.pnc.enums.BuildCoordinationStatus;
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.runtime.BuildTask;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -56,4 +57,6 @@ public interface BuildTaskDatastore {
     boolean areDependenciesBuilt(BuildTask task);
 
     List<BuildTask> getBuildTasksByBCSRId(Integer buildConfigSetRecordId);
+
+    Collection<BuildTask> getAll();
 }

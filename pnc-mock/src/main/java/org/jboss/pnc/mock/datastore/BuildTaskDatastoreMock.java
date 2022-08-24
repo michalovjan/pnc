@@ -22,7 +22,9 @@ import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 
+import javax.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+@ApplicationScoped
 public class BuildTaskDatastoreMock implements BuildTaskDatastore {
     private final AtomicLong taskIds = new AtomicLong(1L);
     private final Map<String, BuildTask> tasks = new ConcurrentHashMap<>();
@@ -166,6 +169,11 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
                 .stream()
                 .filter(t -> t.getBuildConfigSetRecord().getId().equals(buildConfigSetRecordId))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Collection<BuildTask> getAll() {
+        return tasks.values();
     }
 
 }

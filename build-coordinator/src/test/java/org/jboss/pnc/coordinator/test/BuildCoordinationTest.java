@@ -2,13 +2,13 @@
  * JBoss, Home of Professional Open Source.
  * Copyright 2014-2022 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,7 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.pnc.common.util.ObjectWrapper;
 import org.jboss.pnc.coordinator.builder.BuildQueue;
+import org.jboss.pnc.coordinator.builder.SetRecordUpdateJob;
 import org.jboss.pnc.coordinator.notifications.buildSetTask.BuildSetCallBack;
 import org.jboss.pnc.coordinator.notifications.buildSetTask.BuildSetStatusNotifications;
 import org.jboss.pnc.enums.BuildStatus;
@@ -36,6 +37,7 @@ import org.jboss.pnc.model.runtime.BuildOptions;
 import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.coordinator.BuildSetTask;
+import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
 import org.jboss.pnc.spi.datastore.DatastoreException;
 import org.jboss.pnc.spi.events.BuildSetStatusChangedEvent;
 import org.jboss.pnc.spi.exception.CoreException;
@@ -48,9 +50,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -59,6 +63,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.awaitility.Awaitility.await;
 import static org.jboss.pnc.coordinator.test.BuildCoordinatorDeployments.Options.WITH_BPM;
 import static org.jboss.pnc.coordinator.test.BuildCoordinatorDeployments.Options.WITH_DATASTORE;
 
@@ -83,6 +88,12 @@ public class BuildCoordinationTest {
     BuildSetStatusNotifications buildSetStatusNotifications;
 
     @Inject
+    SetRecordUpdateJob setUpdateJob;
+
+    @Inject
+    BuildTaskDatastore buildTaskDatastore;
+
+    @Inject
     private DatastoreMock datastoreMock;
 
     @Deployment
@@ -102,7 +113,7 @@ public class BuildCoordinationTest {
         buildOptions.setRebuildMode(RebuildMode.IMPLICIT_DEPENDENCY_CHECK);
         BuildSetTask buildSetTask = buildCoordinator
                 .build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
-
+        waitForBuildFinishAndTriggerSetUpdateJob(buildSetTask.getBuildTasks());
         Wait.forCondition(lastBuildSetStatus::isSet, 5, ChronoUnit.SECONDS);
 
         // check the result
@@ -114,6 +125,25 @@ public class BuildCoordinationTest {
         assertThat(maybeSetRecord.isPresent()).isTrue();
         Assert.assertEquals(BuildStatus.SUCCESS, maybeSetRecord.get().getStatus());
         assertEmptyQueue();
+    }
+
+    private void waitForBuildFinishAndTriggerSetUpdateJob(Collection<BuildTask> buildTasks) {
+        await().atMost(Duration.ofSeconds(5))
+                .until(() -> tasksFinished(buildTasks));
+        setUpdateJob.updateConfigSetRecordsStatuses();
+    }
+
+    private boolean tasksFinished(Collection<BuildTask> buildTasks) {
+        return buildTasks.stream().map(t -> buildTaskDatastore.getTask(t.getId())).filter(Objects::nonNull).allMatch(
+                t -> {
+                    if (t.getStatus().isCompleted()) {
+                        return true;
+                    } else {
+                        log.info("found incomplete task {}", t);
+                        return false;
+                    }
+                }
+        );
     }
 
     @Test
@@ -169,7 +199,7 @@ public class BuildCoordinationTest {
         Assert.assertEquals(BuildStatus.FAILED, maybeSetRecord.get().getStatus());
         Collection<BuildStatus> statuses = getBuildStatuses();
         Assert.assertTrue(statuses.contains(BuildStatus.REJECTED_FAILED_DEPENDENCIES)); // dependent build failed with
-                                                                                        // system error
+        // system error
         Assert.assertFalse(statuses.contains(BuildStatus.SYSTEM_ERROR));
         assertEmptyQueue();
     }

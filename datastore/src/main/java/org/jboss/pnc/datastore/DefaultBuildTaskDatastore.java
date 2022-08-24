@@ -29,6 +29,7 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -200,6 +201,11 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
                 .createQuery("select bt from BuildTask bt where bt.buildConfigSetRecord.id = :setId", BuildTask.class)
                 .setParameter("setId", buildConfigSetRecordId)
                 .getResultList();
+    }
+
+    @Override
+    public Collection<BuildTask> getAll() {
+        return entityManager.createQuery("select bt from BuildTask bt", BuildTask.class).getResultList();
     }
 
 }

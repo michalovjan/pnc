@@ -19,7 +19,6 @@ package org.jboss.pnc.coordinator.builder;
 
 import org.jboss.pnc.model.BuildConfigurationAudited;
 import org.jboss.pnc.model.runtime.BuildTask;
-import org.jboss.pnc.spi.coordinator.BuildSetTask;
 
 import java.util.Collection;
 import java.util.List;
@@ -43,7 +42,7 @@ public interface BuildQueue {
 
     /**
      * We may need a different API for it
-     * 
+     *
      * @param buildTaskConsumer
      * @throws InterruptedException
      */

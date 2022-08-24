@@ -59,7 +59,7 @@ public class SetRecordUpdateJob {
      */
     @Schedule(hour = "*", minute = "*", second = "0,10,20,30,40,50")
     @Transactional
-    void updateConfigSetRecordsStatuses() {
+    public void updateConfigSetRecordsStatuses() {
         log.debug("triggered the job");
         // #1 query for unfinished BCSR
         // for each -> BTasks -> check status
@@ -68,7 +68,7 @@ public class SetRecordUpdateJob {
         // see BTasks -> if not BTasks -> check BRs -> decide final status
         // see BTasks ->
         List<BuildConfigSetRecord> setRecords = setRecordRepository.findBuildConfigSetRecordsInProgress();
-
+        log.debug("BCSRs in progress: {}", setRecords);
         for (BuildConfigSetRecord setRecord : setRecords) {
             updateConfigSetRecordStatus(setRecord);
         }

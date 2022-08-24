@@ -20,6 +20,7 @@ package org.jboss.pnc.coordinator.test;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.pnc.api.enums.AlignmentPreference;
+import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.enums.RebuildMode;
 import org.jboss.pnc.mock.builddriver.BuildDriverResultMock;
 import org.jboss.pnc.mock.datastore.DatastoreMock;
@@ -30,7 +31,9 @@ import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.events.BuildStatusChangedEvent;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -54,10 +57,22 @@ public class SingleProjectBuildTest extends ProjectBuilder {
     @Inject
     BuildCoordinatorFactory buildCoordinatorFactory;
 
+    @Inject
+    BuildQueue buildQueue;
+
+    @Inject
+    DatastoreMock datastoreMock;
+
+    @Before
+    @After
+    public void cleanUp() {
+        datastoreMock.clear();
+    }
+
     @Test
     public void buildSingleProjectTestCase() throws Exception {
+        System.out.println(buildQueue.getDebugInfo()); // mstodo remove
         // given
-        DatastoreMock datastoreMock = new DatastoreMock();
         TestProjectConfigurationBuilder configurationBuilder = new TestProjectConfigurationBuilder(datastoreMock);
         List<BuildStatusChangedEvent> receivedStatuses = new CopyOnWriteArrayList<>();
 
@@ -90,8 +105,8 @@ public class SingleProjectBuildTest extends ProjectBuilder {
 
     @Test
     public void buildWithBasicOptionsTest() throws Exception {
+        System.out.println(buildQueue.getDebugInfo()); // mstodo remove
         // given
-        DatastoreMock datastoreMock = new DatastoreMock();
         TestProjectConfigurationBuilder configurationBuilder = new TestProjectConfigurationBuilder(datastoreMock);
         List<BuildStatusChangedEvent> receivedStatuses = new CopyOnWriteArrayList<>();
 
@@ -110,6 +125,7 @@ public class SingleProjectBuildTest extends ProjectBuilder {
 
     @Test
     public void buildWithAdvancedOptionsTest() throws Exception {
+        System.out.println(buildQueue.getDebugInfo()); // mstodo remove
         // given
         BuildOptions originalBuildOptions = new BuildOptions(
                 true,
@@ -118,7 +134,6 @@ public class SingleProjectBuildTest extends ProjectBuilder {
                 true,
                 RebuildMode.FORCE,
                 AlignmentPreference.PREFER_PERSISTENT);
-        DatastoreMock datastoreMock = new DatastoreMock();
         TestProjectConfigurationBuilder configurationBuilder = new TestProjectConfigurationBuilder(datastoreMock);
         List<BuildStatusChangedEvent> receivedStatuses = new CopyOnWriteArrayList<>();
 
@@ -131,8 +146,10 @@ public class SingleProjectBuildTest extends ProjectBuilder {
                 originalBuildOptions);
 
         // then
-        List<BuildRecord> buildRecords = datastoreMock.getBuildRecords();
-        Assert.assertEquals("Wrong datastore results count.", 1, buildRecords.size());
+        // List<BuildRecord> buildRecords = await().atMost(Duration.ofSeconds(15))
+        // .until(datastoreMock::getBuildRecords, Matchers.hasSize(Matchers.greaterThan(0)));
+
+        Assert.assertEquals("Wrong datastore results count.", 1, datastoreMock.getBuildRecords().size());
         Assert.assertEquals(originalBuildOptions, buildTask.getBuildOptions());
     }
 }
