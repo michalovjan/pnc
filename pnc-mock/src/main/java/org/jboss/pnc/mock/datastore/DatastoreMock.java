@@ -84,7 +84,9 @@ public class DatastoreMock implements Datastore {
                         "Unique constraint violation, the record with id [" + buildRecord.getId()
                                 + "] already exists.");
             }
-            buildRecord.getBuildConfigSetRecord().getBuildRecords().add(buildRecord);
+            if (buildRecord.getBuildConfigSetRecord() != null) {
+                buildRecord.getBuildConfigSetRecord().getBuildRecords().add(buildRecord);
+            }
             buildRecords.add(buildRecord);
             log.debug("[{}]Build records after storing: {}", this.hashCode(), buildRecords);
         }

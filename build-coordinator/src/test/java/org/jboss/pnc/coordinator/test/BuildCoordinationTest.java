@@ -224,7 +224,8 @@ public class BuildCoordinationTest {
 
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.setRebuildMode(RebuildMode.FORCE);
-        BuildSetTask buildSetTask = buildCoordinator.build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
+        BuildSetTask buildSetTask = buildCoordinator
+                .build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
 
         Wait.forCondition(
                 () -> contains(buildSetStatusChangedEvents, BuildStatus.NEW),

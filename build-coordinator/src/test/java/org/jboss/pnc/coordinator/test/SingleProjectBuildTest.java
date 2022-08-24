@@ -71,7 +71,6 @@ public class SingleProjectBuildTest extends ProjectBuilder {
 
     @Test
     public void buildSingleProjectTestCase() throws Exception {
-        System.out.println(buildQueue.getDebugInfo()); // mstodo remove
         // given
         TestProjectConfigurationBuilder configurationBuilder = new TestProjectConfigurationBuilder(datastoreMock);
         List<BuildStatusChangedEvent> receivedStatuses = new CopyOnWriteArrayList<>();
@@ -105,7 +104,6 @@ public class SingleProjectBuildTest extends ProjectBuilder {
 
     @Test
     public void buildWithBasicOptionsTest() throws Exception {
-        System.out.println(buildQueue.getDebugInfo()); // mstodo remove
         // given
         TestProjectConfigurationBuilder configurationBuilder = new TestProjectConfigurationBuilder(datastoreMock);
         List<BuildStatusChangedEvent> receivedStatuses = new CopyOnWriteArrayList<>();
@@ -125,7 +123,6 @@ public class SingleProjectBuildTest extends ProjectBuilder {
 
     @Test
     public void buildWithAdvancedOptionsTest() throws Exception {
-        System.out.println(buildQueue.getDebugInfo()); // mstodo remove
         // given
         BuildOptions originalBuildOptions = new BuildOptions(
                 true,
