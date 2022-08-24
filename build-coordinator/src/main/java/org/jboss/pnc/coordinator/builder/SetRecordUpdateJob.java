@@ -25,12 +25,13 @@ import org.jboss.pnc.model.BuildRecord;
 import org.jboss.pnc.model.runtime.BuildTask;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 import org.jboss.pnc.spi.datastore.BuildTaskDatastore;
-import org.jboss.pnc.spi.datastore.repositories.BuildConfigSetRecordRepository;
+import org.jboss.pnc.spi.datastore.Datastore;
 
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -46,7 +47,7 @@ public class SetRecordUpdateJob {
     private BuildTaskDatastore taskDatastore;
 
     @Inject
-    BuildConfigSetRecordRepository setRecordRepository;
+    Datastore datastore;
 
     @Inject
     BuildCoordinator buildCoordinator;
@@ -71,7 +72,7 @@ public class SetRecordUpdateJob {
         // see BTasks -> if BCSD NEW and running BTasks -> change to RUNNING
         // see BTasks -> if not BTasks -> check BRs -> decide final status
         // see BTasks ->
-        List<BuildConfigSetRecord> setRecords = setRecordRepository.findBuildConfigSetRecordsInProgress();
+        Collection<BuildConfigSetRecord> setRecords = datastore.findBuildConfigSetRecordsInProgress();
         log.debug("BCSRs in progress: {}", setRecords);
         for (BuildConfigSetRecord setRecord : setRecords) {
             updateConfigSetRecordStatus(setRecord);

@@ -128,22 +128,22 @@ public class BuildCoordinationTest {
     }
 
     private void waitForBuildFinishAndTriggerSetUpdateJob(Collection<BuildTask> buildTasks) {
-        await().atMost(Duration.ofSeconds(5))
-                .until(() -> tasksFinished(buildTasks));
+        await().atMost(Duration.ofSeconds(5)).until(() -> tasksFinished(buildTasks));
         setUpdateJob.updateConfigSetRecordsStatuses();
     }
 
     private boolean tasksFinished(Collection<BuildTask> buildTasks) {
-        return buildTasks.stream().map(t -> buildTaskDatastore.getTask(t.getId())).filter(Objects::nonNull).allMatch(
-                t -> {
+        return buildTasks.stream()
+                .map(t -> buildTaskDatastore.getTask(t.getId()))
+                .filter(Objects::nonNull)
+                .allMatch(t -> {
                     if (t.getStatus().isCompleted()) {
                         return true;
                     } else {
                         log.info("found incomplete task {}", t);
                         return false;
                     }
-                }
-        );
+                });
     }
 
     @Test
@@ -159,6 +159,7 @@ public class BuildCoordinationTest {
         BuildSetTask buildSetTask = buildCoordinator
                 .build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
 
+        waitForBuildFinishAndTriggerSetUpdateJob(buildSetTask.getBuildTasks());
         Wait.forCondition(lastBuildSetStatus::isSet, 5, ChronoUnit.SECONDS);
 
         // check the result
@@ -184,7 +185,7 @@ public class BuildCoordinationTest {
         buildOptions.setRebuildMode(RebuildMode.FORCE);
         BuildSetTask buildSetTask = buildCoordinator
                 .build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
-
+        waitForBuildFinishAndTriggerSetUpdateJob(buildSetTask.getBuildTasks());
         Wait.forCondition(lastBuildSetStatus::isSet, 5, ChronoUnit.SECONDS);
 
         // check the result
@@ -223,13 +224,14 @@ public class BuildCoordinationTest {
 
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.setRebuildMode(RebuildMode.FORCE);
-        buildCoordinator.build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
+        BuildSetTask buildSetTask = buildCoordinator.build(buildConfigurationSet, TestEntitiesFactory.newUser(), buildOptions);
 
         Wait.forCondition(
                 () -> contains(buildSetStatusChangedEvents, BuildStatus.NEW),
                 2000,
                 ChronoUnit.MILLIS,
                 () -> "Did not receive status update to NEW for task set. Received: " + buildSetStatusChangedEvents);
+        waitForBuildFinishAndTriggerSetUpdateJob(buildSetTask.getBuildTasks());
         Wait.forCondition(
                 () -> contains(buildSetStatusChangedEvents, BuildStatus.SUCCESS),
                 5000,

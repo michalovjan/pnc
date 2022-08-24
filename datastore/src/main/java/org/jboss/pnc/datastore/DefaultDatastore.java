@@ -381,6 +381,11 @@ public class DefaultDatastore implements Datastore {
     }
 
     @Override
+    public Collection<BuildConfigSetRecord> findBuildConfigSetRecordsInProgress() {
+        return buildConfigSetRecordRepository.findBuildConfigSetRecordsInProgress();
+    }
+
+    @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public boolean requiresRebuild(
             BuildConfigurationAudited buildConfigurationAudited,

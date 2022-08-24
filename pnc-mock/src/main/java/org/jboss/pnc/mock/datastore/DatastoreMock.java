@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Created by <a href="mailto:matejonnet@gmail.com">Matej Lazar</a> on 2014-11-24.
@@ -83,6 +84,7 @@ public class DatastoreMock implements Datastore {
                         "Unique constraint violation, the record with id [" + buildRecord.getId()
                                 + "] already exists.");
             }
+            buildRecord.getBuildConfigSetRecord().getBuildRecords().add(buildRecord);
             buildRecords.add(buildRecord);
             log.debug("[{}]Build records after storing: {}", this.hashCode(), buildRecords);
         }
@@ -168,6 +170,11 @@ public class DatastoreMock implements Datastore {
     @Override
     public Set<BuildConfiguration> getBuildConfigurations(BuildConfigurationSet buildConfigurationSet) {
         return buildConfigurationSet.getBuildConfigurations();
+    }
+
+    @Override
+    public Collection<BuildConfigSetRecord> findBuildConfigSetRecordsInProgress() {
+        return buildConfigSetRecords.stream().filter(r -> !r.getStatus().isFinal()).collect(Collectors.toList());
     }
 
     @Override
