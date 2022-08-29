@@ -25,6 +25,7 @@ import org.jboss.pnc.common.concurrent.Sequence;
 import org.jboss.pnc.common.util.ObjectWrapper;
 import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildTasksInitializer;
+import org.jboss.pnc.coordinator.builder.SetRecordUpdateJob;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.coordinator.notifications.buildSetTask.BuildSetStatusNotifications;
 import org.jboss.pnc.coordinator.notifications.buildTask.BuildCallBack;
@@ -104,6 +105,9 @@ public class StatusUpdatesTest {
     @Inject
     Event<BuildSetStatusChangedEvent> buildSetStatusChangedEventNotifier;
 
+    @Inject
+    SetRecordUpdateJob setRecordUpdateJob;
+
     @Deployment
     public static JavaArchive createDeployment() {
         return BuildCoordinatorDeployments.deployment(
@@ -127,7 +131,7 @@ public class StatusUpdatesTest {
             buildCoordinator.completeBuild(bt, createBuildResult());
         });
         this.waitForConditionWithTimeout(() -> buildTasks.stream().allMatch(task -> task.getStatus().isCompleted()), 4);
-
+        setRecordUpdateJob.updateConfigSetRecordsStatuses();
         Assert.assertNotNull("Did not receive build set status update.", receivedBuildSetStatusChangedEvent.get());
         Assert.assertEquals(BuildStatus.SUCCESS, receivedBuildSetStatusChangedEvent.get().getNewStatus());
     }
