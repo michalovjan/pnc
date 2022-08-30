@@ -43,17 +43,24 @@ import java.util.stream.Stream;
 // TODO: make it run on a single instance if easily doable
 public class SetRecordUpdateJob {
 
-    @Inject
     private BuildTaskDatastore taskDatastore;
 
-    @Inject
     Datastore datastore;
 
-    @Inject
     BuildCoordinator buildCoordinator;
 
     @Deprecated // CDI
     public SetRecordUpdateJob() {
+    }
+
+    @Inject
+    public SetRecordUpdateJob(
+            BuildTaskDatastore taskDatastore,
+            Datastore datastore,
+            BuildCoordinator buildCoordinator) {
+        this.taskDatastore = taskDatastore;
+        this.datastore = datastore;
+        this.buildCoordinator = buildCoordinator;
     }
 
     /**

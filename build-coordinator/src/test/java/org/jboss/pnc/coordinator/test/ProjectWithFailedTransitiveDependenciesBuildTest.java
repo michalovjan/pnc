@@ -21,6 +21,7 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
 import org.jboss.pnc.coordinator.builder.BuildQueue;
+import org.jboss.pnc.coordinator.builder.SetRecordUpdateJob;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.mock.model.builders.TestProjectConfigurationBuilder;
 import org.jboss.pnc.model.BuildConfigSetRecord;
@@ -62,15 +63,17 @@ public class ProjectWithFailedTransitiveDependenciesBuildTest extends ProjectBui
     @InSequence(10)
     public void buildFailingProjectTestCase() throws Exception {
         TestProjectConfigurationBuilder configurationBuilder = new TestProjectConfigurationBuilder(datastore);
-        BuildCoordinatorBeans buildCoordinatorBeans = buildCoordinatorFactory.createBuildCoordinator(datastore);
-        BuildCoordinator coordinator = buildCoordinatorBeans.coordinator;
-        buildQueue = buildCoordinatorBeans.queue;
+        BuildCoordinatorBeans beans = buildCoordinatorFactory.createBuildCoordinator(datastore);
+        BuildCoordinator coordinator = beans.coordinator;
+        SetRecordUpdateJob setJob = beans.setJob;
+        buildQueue = beans.queue;
 
         buildFailingProject(
                 configurationBuilder.buildConfigurationSetWithFailedDependenciesAndDelay(1),
                 1,
                 2,
-                coordinator);
+                coordinator,
+                setJob);
     }
 
     @Test

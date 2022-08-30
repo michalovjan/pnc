@@ -19,15 +19,16 @@
 package org.jboss.pnc.coordinator.test;
 
 import org.jboss.pnc.common.json.moduleconfig.SystemConfig;
-import org.jboss.pnc.coordinator.builder.BuildQueue;
 import org.jboss.pnc.coordinator.builder.BuildScheduler;
 import org.jboss.pnc.coordinator.builder.BuildSchedulerFactory;
 import org.jboss.pnc.coordinator.builder.DatabaseBackedBuildQueue;
 import org.jboss.pnc.coordinator.builder.DefaultBuildCoordinator;
+import org.jboss.pnc.coordinator.builder.SetRecordUpdateJob;
 import org.jboss.pnc.coordinator.builder.datastore.DatastoreAdapter;
 import org.jboss.pnc.coordinator.builder.local.LocalBuildScheduler;
 import org.jboss.pnc.mapper.api.BuildMapper;
 import org.jboss.pnc.mapper.api.GroupBuildMapper;
+import org.jboss.pnc.mock.datastore.BuildTaskDatastoreMock;
 import org.jboss.pnc.mock.datastore.DatastoreMock;
 import org.jboss.pnc.mock.executor.BuildExecutorMock;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
@@ -52,9 +53,6 @@ public class BuildCoordinatorFactory {
     private GroupBuildMapper groupBuildMapper;
 
     @Inject
-    BuildQueue buildQueue;
-
-    @Inject
     private BuildMapper buildMapper;
 
     public BuildCoordinatorBeans createBuildCoordinator(DatastoreMock datastore) {
@@ -62,7 +60,11 @@ public class BuildCoordinatorFactory {
 
         SystemConfig systemConfig = createConfiguration();
 
+        BuildTaskDatastoreMock buildTaskDatastore = new BuildTaskDatastoreMock();
+
         LocalBuildSchedulerMock localBuildScheduler = new LocalBuildSchedulerMock();
+
+        DatabaseBackedBuildQueue buildQueue = new DatabaseBackedBuildQueue(systemConfig, buildTaskDatastore);
 
         BuildSchedulerFactory buildSchedulerFactory = new BuildSchedulerFactory() {
             @Override
@@ -81,8 +83,11 @@ public class BuildCoordinatorFactory {
                 buildMapper);
         localBuildScheduler.setBuildCoordinator(coordinator);
         coordinator.start();
-        ((DatabaseBackedBuildQueue) buildQueue).initSemaphore();
-        return new BuildCoordinatorBeans(buildQueue, coordinator);
+        buildQueue.initSemaphore();
+
+        SetRecordUpdateJob setJob = new SetRecordUpdateJob(buildTaskDatastore, datastore, coordinator);
+
+        return new BuildCoordinatorBeans(buildQueue, coordinator, setJob);
     }
 
     private SystemConfig createConfiguration() {

@@ -19,6 +19,7 @@ package org.jboss.pnc.coordinator.test;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.pnc.coordinator.builder.SetRecordUpdateJob;
 import org.jboss.pnc.enums.BuildStatus;
 import org.jboss.pnc.mock.datastore.DatastoreMock;
 import org.jboss.pnc.mock.model.builders.TestProjectConfigurationBuilder;
@@ -112,7 +113,9 @@ public class CancelledBuildTest extends ProjectBuilder {
         // given
         DatastoreMock datastoreMock = new DatastoreMock();
         TestProjectConfigurationBuilder configurationBuilder = new TestProjectConfigurationBuilder(datastoreMock);
-        BuildCoordinator coordinator = buildCoordinatorFactory.createBuildCoordinator(datastoreMock).coordinator;
+        BuildCoordinatorBeans beans = buildCoordinatorFactory.createBuildCoordinator(datastoreMock);
+        BuildCoordinator coordinator = beans.coordinator;
+        SetRecordUpdateJob setJob = beans.setJob;
         BuildConfigurationSet configurationSet = configurationBuilder.buildConfigurationSetForCancel(1);
 
         List<BuildStatusChangedEvent> receivedStatuses = new ArrayList<>();
@@ -136,7 +139,7 @@ public class CancelledBuildTest extends ProjectBuilder {
         };
 
         // when
-        BuildSetTask buildSetTask = buildProjects(configurationSet, coordinator, onStatusUpdate, 2);
+        BuildSetTask buildSetTask = buildProjects(configurationSet, coordinator, setJob, onStatusUpdate, 2);
 
         // expect
         List<BuildRecord> buildRecords = datastoreMock.getBuildRecords();

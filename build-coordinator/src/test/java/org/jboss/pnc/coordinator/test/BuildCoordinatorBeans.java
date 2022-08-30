@@ -18,6 +18,7 @@
 package org.jboss.pnc.coordinator.test;
 
 import org.jboss.pnc.coordinator.builder.BuildQueue;
+import org.jboss.pnc.coordinator.builder.SetRecordUpdateJob;
 import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 
 /**
@@ -26,9 +27,11 @@ import org.jboss.pnc.spi.coordinator.BuildCoordinator;
 public class BuildCoordinatorBeans {
     public final BuildQueue queue;
     public final BuildCoordinator coordinator;
+    public final SetRecordUpdateJob setJob;
 
-    public BuildCoordinatorBeans(BuildQueue queue, BuildCoordinator coordinator) {
+    public BuildCoordinatorBeans(BuildQueue queue, BuildCoordinator coordinator, SetRecordUpdateJob setJob) {
         this.queue = queue;
         this.coordinator = coordinator;
+        this.setJob = setJob;
     }
 }

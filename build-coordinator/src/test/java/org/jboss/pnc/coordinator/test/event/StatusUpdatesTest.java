@@ -133,7 +133,7 @@ public class StatusUpdatesTest {
         this.waitForConditionWithTimeout(() -> buildTasks.stream().allMatch(task -> task.getStatus().isCompleted()), 4);
         setRecordUpdateJob.updateConfigSetRecordsStatuses();
         Assert.assertNotNull("Did not receive build set status update.", receivedBuildSetStatusChangedEvent.get());
-        Assert.assertEquals(BuildStatus.SUCCESS, receivedBuildSetStatusChangedEvent.get().getNewStatus());
+        Assert.assertTrue(receivedBuildSetStatusChangedEvent.get().getNewStatus().isFinal());
     }
 
     @Test

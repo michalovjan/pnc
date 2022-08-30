@@ -83,7 +83,10 @@ public class ProjectWithDependenciesBuildTest extends ProjectBuilder {
 
         // when
         BuildCoordinatorBeans coordinator = buildCoordinatorFactory.createBuildCoordinator(datastoreMock);
-        buildProjects(configurationBuilder.buildConfigurationSet(BUILD_SET_ID), coordinator.coordinator);
+        buildProjects(
+                configurationBuilder.buildConfigurationSet(BUILD_SET_ID),
+                coordinator.coordinator,
+                coordinator.setJob);
 
         // expect
         List<BuildRecord> buildRecords = datastoreMock.getBuildRecords();

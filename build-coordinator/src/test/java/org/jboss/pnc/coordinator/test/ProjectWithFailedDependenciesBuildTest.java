@@ -56,7 +56,8 @@ public class ProjectWithFailedDependenciesBuildTest extends ProjectBuilder {
         buildFailingProject(
                 configurationBuilder.buildConfigurationSetWithFailedDependencies(1),
                 1,
-                buildCoordinatorBeans.coordinator);
+                buildCoordinatorBeans.coordinator,
+                buildCoordinatorBeans.setJob);
     }
 
     @Test
