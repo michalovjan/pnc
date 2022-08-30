@@ -50,7 +50,7 @@ public interface BuildTaskDatastore {
 
     List<BuildTask> getNewTasksWithDepsInStates(Set<BuildCoordinationStatus> states);
 
-    void transitionWaitingToReadyIfDepsBuilt();
+    List<BuildTask> getWaitingReadyToBeBuilt();
 
     BuildTask getTaskWithAllProperties(BuildTask task);
 
@@ -59,4 +59,6 @@ public interface BuildTaskDatastore {
     List<BuildTask> getBuildTasksByBCSRId(Integer buildConfigSetRecordId);
 
     Collection<BuildTask> getAll();
+
+    boolean markReady(BuildTask buildTask);
 }

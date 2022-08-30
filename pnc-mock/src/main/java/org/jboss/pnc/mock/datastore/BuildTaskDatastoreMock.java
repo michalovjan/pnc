@@ -42,7 +42,9 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
 
     @Override
     public void persist(BuildTask task) {
-        task.setId("" + taskIds.getAndIncrement());
+        if (task.getId() == null) {
+            task.setId("" + taskIds.getAndIncrement());
+        }
         tasks.put(task.getId(), task);
     }
 
@@ -127,7 +129,8 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
     }
 
     @Override
-    public void transitionWaitingToReadyIfDepsBuilt() {
+    public List<BuildTask> getWaitingReadyToBeBuilt() {
+        List<BuildTask> result = new ArrayList<>();
         for (BuildTask task : tasks.values()) {
             if (task.getStatus() == BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES) {
                 boolean hasUnfinishedOrFailedDep = false;
@@ -141,10 +144,11 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
                 }
                 if (!hasUnfinishedOrFailedDep) {
                     // mstodo we have no even to transition to enqueued with the db one!
-                    task.setStatus(BuildCoordinationStatus.ENQUEUED);
+                    result.add(task);
                 }
             }
         }
+        return result;
     }
 
     @Override
@@ -174,6 +178,15 @@ public class BuildTaskDatastoreMock implements BuildTaskDatastore {
     @Override
     public Collection<BuildTask> getAll() {
         return tasks.values();
+    }
+
+    @Override
+    public synchronized boolean markReady(BuildTask buildTask) {
+        if (buildTask.getStatus() == BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES) {
+            buildTask.setStatus(BuildCoordinationStatus.ENQUEUED);
+            return true;
+        }
+        return false;
     }
 
 }

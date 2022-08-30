@@ -138,7 +138,11 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         // mstodo support task ready callback in the DB backed queue
         this.buildQueue.registerTaskReadyCallback(buildTask -> {
             ProcessStageUtils.logProcessStageEnd(BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES.toString());
-            updateBuildTaskStatus(buildTask, BuildCoordinationStatus.ENQUEUED);
+            updateBuildTaskStatus(
+                    buildTask,
+                    BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES,
+                    BuildCoordinationStatus.ENQUEUED,
+                    null);
             ProcessStageUtils.logProcessStageBegin(BuildCoordinationStatus.ENQUEUED.toString());
         });
     }
@@ -542,11 +546,14 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
     }
 
     public void updateBuildTaskStatus(BuildTask task, BuildCoordinationStatus status) {
-        updateBuildTaskStatus(task, status, null);
+        updateBuildTaskStatus(task, task.getStatus(), status, null);
     }
 
-    private void updateBuildTaskStatus(BuildTask task, BuildCoordinationStatus status, String statusDescription) {
-        BuildCoordinationStatus oldStatus = task.getStatus();
+    private void updateBuildTaskStatus(
+            BuildTask task,
+            BuildCoordinationStatus oldStatus,
+            BuildCoordinationStatus status,
+            String statusDescription) {
 
         // avoid marking the same task second time which could happen f.e. with transition
         // REJECTED_ALREADY_BUILT -> DONE
@@ -680,7 +687,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
             buildScheduler.startBuilding(task);
         } catch (CoreException | ExecutorException e) {
             log.debug(" Build coordination task failed. Setting it as SYSTEM_ERROR.", e);
-            updateBuildTaskStatus(task, BuildCoordinationStatus.SYSTEM_ERROR, e.getMessage());
+            updateBuildTaskStatus(task, task.getStatus(), BuildCoordinationStatus.SYSTEM_ERROR, e.getMessage());
             try {
                 datastoreAdapter.storeResult(task, Optional.empty(), e);
             } catch (DatastoreException e1) {
@@ -692,7 +699,7 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         } catch (Error error) {
             log.error("Build coordination task failed with error! Setting it as SYSTEM_ERROR.", error);
             log.error("The system probably is in an invalid state!");
-            updateBuildTaskStatus(task, BuildCoordinationStatus.SYSTEM_ERROR, error.getMessage());
+            updateBuildTaskStatus(task, task.getStatus(), BuildCoordinationStatus.SYSTEM_ERROR, error.getMessage());
             try {
                 datastoreAdapter.storeResult(task, Optional.empty(), error);
             } catch (DatastoreException e1) {
@@ -838,7 +845,6 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         switch (status) {
             case DONE:
             case REJECTED_ALREADY_BUILT:
-                buildQueue.executeNewReadyTasks();
                 break;
             case REJECTED:
             case REJECTED_FAILED_DEPENDENCIES:
@@ -882,11 +888,13 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         if (failedTask.getStatus() == BuildCoordinationStatus.CANCELLED) {
             updateBuildTaskStatus(
                     dependentTask,
+                    dependentTask.getStatus(),
                     BuildCoordinationStatus.CANCELLED,
                     "Dependent build " + failedTask.getBuildConfigurationAudited().getName() + " was cancelled");
         } else {
             updateBuildTaskStatus(
                     dependentTask,
+                    dependentTask.getStatus(),
                     BuildCoordinationStatus.REJECTED_FAILED_DEPENDENCIES,
                     "Dependent build " + failedTask.getBuildConfigurationAudited().getName() + " failed.");
         }

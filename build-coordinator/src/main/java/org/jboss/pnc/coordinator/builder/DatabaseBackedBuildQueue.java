@@ -2,13 +2,13 @@
  * JBoss, Home of Professional Open Source.
  * Copyright 2014-2022 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collection;
@@ -67,6 +68,8 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     private static final Set<BuildCoordinationStatus> SUCCESSFUL_FINISH_STATES = BuildCoordinationStatus
             .successfulFinishStates();
     private SystemConfig systemConfig;
+
+    private volatile boolean stopped;
 
     // private final Set<MDCAwareElement<BuildTask>> unfinishedTasks = new HashSet<>();
 
@@ -133,21 +136,6 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     }
 
     /**
-     * Trigger searching for ready tasks in the waiting queue. This method should be invoked if one task has finished
-     * and there's a possibility that other tasks became ready to be built.
-     */
-    public synchronized void executeNewReadyTasks() {
-        // mstodo just switch tasks to ready?
-        // List<MDCAwareElement<BuildTask>> newReadyTasks = extractReadyTasks();
-        log.debug("Ignoring starting new ready tasks.");
-        List<BuildTask> newReadyTasks = datastore.getNewTasksWithDepsInStates(SUCCESSFUL_FINISH_STATES);
-        for (BuildTask newReadyTask : newReadyTasks) {
-            newReadyTask.setStatus(BuildCoordinationStatus.ENQUEUED);
-            onTaskReady.accept(newReadyTask);
-        }
-    }
-
-    /**
      * Get build task for given build systemConfig from the queue.
      *
      * @param buildConfigAudited build systemConfig
@@ -170,14 +158,20 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     private BuildTask take() throws InterruptedException {
         availableBuildSlots.acquire();
         log.info("Consumer is ready to go, waiting for task");
-        while (true) {
+        while (!stopped) {
             Optional<BuildTask> task = datastore.getFirstTaskInState(BuildCoordinationStatus.ENQUEUED);
             if (!task.isPresent()) {
                 log.trace("Didn't get a task to start, let's wait and try again in a moment");
                 // mstodo configurable wait
                 Thread.sleep(50L); // no ready tasks found, let's take some rest
                 // and try to find new ready tasks:
-                datastore.transitionWaitingToReadyIfDepsBuilt();
+                List<BuildTask> waitingReadyToBeBuilt = datastore.getWaitingReadyToBeBuilt();
+
+                for (BuildTask buildTask : waitingReadyToBeBuilt) {
+                    if (datastore.markReady(buildTask)) {
+                        onTaskReady.accept(buildTask);
+                    }
+                }
             } else {
                 log.debug("Got a task to start with id {}, let's try to lock it for starting", task.get().getId());
                 BuildTask grabbedTask = datastore.grabTask(task.get());
@@ -188,6 +182,9 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
                 } // else take the next task
             }
         }
+
+        log.info("shutting down the build queue");
+        return null;
     }
 
     public void take(Consumer<BuildTask> consumer) throws InterruptedException {
@@ -242,7 +239,7 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
 
     @Override
     public boolean readyToBuild(BuildTask buildTask) {
-        return false;
+        return datastore.areDependenciesBuilt(buildTask);
     }
 
     @Override
@@ -299,4 +296,9 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     //
     // return info;
     // }
+
+    @PreDestroy
+    public void tearDown() {
+        stopped = true;
+    }
 }

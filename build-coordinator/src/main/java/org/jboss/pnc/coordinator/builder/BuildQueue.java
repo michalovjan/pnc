@@ -36,8 +36,6 @@ public interface BuildQueue {
 
     void removeTask(BuildTask task);
 
-    void executeNewReadyTasks();
-
     List<BuildTask> getSubmittedBuildTasks();
 
     /**

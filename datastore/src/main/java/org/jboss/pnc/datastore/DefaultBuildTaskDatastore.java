@@ -154,16 +154,16 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
     }
 
     @Override
-    public void transitionWaitingToReadyIfDepsBuilt() {
-        entityManager
+    public List<BuildTask> getWaitingReadyToBeBuilt() {
+        return entityManager
                 .createQuery(
-                        "update BuildTask t set t.status = :targetState where t.status = :currentState and 0 = ("
+                        "select t from BuildTask t where t.status = :currentState and 0 = ("
                                 + "   select count(d) from t.dependencies d join BuildTask depTask on depTask.id = d "
-                                + "where depTask.status in :unfinishedStates)")
-                .setParameter("targetState", BuildCoordinationStatus.ENQUEUED)
+                                + "where depTask.status in :unfinishedStates)",
+                        BuildTask.class)
                 .setParameter("currentState", BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES)
                 .setParameter("unfinishedStates", UNFINISHED_OR_FAILED_STATES)
-                .executeUpdate();
+                .getResultList();
     }
 
     @Override
@@ -189,10 +189,11 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
 
     @Override
     public boolean areDependenciesBuilt(BuildTask task) {
+        // mstodo verify what should happen on a finsihed but failed state
         return entityManager.createQuery(
                 "select count(d) from BuildTask t join t.dependencies d join BuildTask depTask on depTask.id = d "
                         + "where depTask.status in :unfinishedStates",
-                Integer.class).getSingleResult() == 0;
+                Integer.class).setParameter("unfinishedStates", UNFINISHED_OR_FAILED_STATES).getSingleResult() == 0;
     }
 
     @Override
@@ -206,6 +207,17 @@ public class DefaultBuildTaskDatastore implements BuildTaskDatastore {
     @Override
     public Collection<BuildTask> getAll() {
         return entityManager.createQuery("select bt from BuildTask bt", BuildTask.class).getResultList();
+    }
+
+    @Override
+    public boolean markReady(BuildTask buildTask) {
+        return entityManager.createQuery(
+                "update BuildTask t set t.status = :targetState where t.status = :currentState and t.id = :taskId")
+                .setParameter("targetState", BuildCoordinationStatus.ENQUEUED)
+                .setParameter("currentState", BuildCoordinationStatus.WAITING_FOR_DEPENDENCIES)
+                .setParameter("taskId", buildTask.getId())
+                .executeUpdate() > 0;
+
     }
 
 }
