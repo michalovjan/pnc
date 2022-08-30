@@ -485,13 +485,8 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
                 MDCUtils.removeBuildContext();
             }
         });
-        record.setStatus(BuildStatus.CANCELLED);
-        record.setEndTime(Date.from(Instant.now()));
-        try {
-            datastoreAdapter.saveBuildConfigSetRecord(record);
-        } catch (DatastoreException e) {
-            log.error("Failed to update BuildConfigSetRecord (id: {} ) with status CANCELLED", record.getId(), e);
-        }
+
+        // modifying of the record to Cancelled state is done in SetRecordUpdateJob
         return true;
     }
 
