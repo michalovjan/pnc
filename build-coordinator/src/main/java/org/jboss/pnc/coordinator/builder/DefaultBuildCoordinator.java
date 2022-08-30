@@ -909,6 +909,11 @@ public class DefaultBuildCoordinator implements BuildCoordinator {
         return buildQueue.getSubmittedBuildTasks();
     }
 
+    @Override
+    public List<BuildTask> getSubmittedBuildTasksBySetId(int buildConfigSetRecordId) {
+        return buildQueue.getBuildTasksByConfigSetRecordId(buildConfigSetRecordId);
+    }
+
     @PostConstruct
     public void start() {
         startThreads();

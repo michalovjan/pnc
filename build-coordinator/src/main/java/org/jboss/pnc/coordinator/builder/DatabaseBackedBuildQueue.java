@@ -253,7 +253,7 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
     }
 
     @Override
-    public Collection<BuildTask> getBuildTasksByConfigSetRecordId(Integer buildConfigSetRecordId) {
+    public List<BuildTask> getBuildTasksByConfigSetRecordId(Integer buildConfigSetRecordId) {
         return datastore.getBuildTasksByBCSRId(buildConfigSetRecordId);
     }
 

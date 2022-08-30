@@ -85,9 +85,7 @@ import static org.jboss.pnc.common.util.RandomUtils.randInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -158,6 +156,14 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
         });
 
         when(buildCoordinator.getSubmittedBuildTasks()).thenReturn(runningBuilds);
+        when(buildCoordinator.getSubmittedBuildTasksBySetId(anyInt())).thenAnswer(inv -> {
+            int bcsrid = inv.getArgument(0);
+            return runningBuilds.stream()
+                    .filter(
+                            task -> task.getBuildConfigSetRecordId() != null
+                                    && task.getBuildConfigSetRecordId().equals(bcsrid))
+                    .collect(Collectors.toList());
+        });
         when(sortInfoProducer.getSortInfo(any(), any())).thenAnswer(i -> mock(SortInfo.class));
         when(rsqlPredicateProducer.getSortInfo(any(), any())).thenAnswer(i -> mock(SortInfo.class));
 
@@ -712,7 +718,9 @@ public class BuildProviderImplTest extends AbstractBase32LongIDProviderTest<Buil
 
     private BuildTask mockBuildTaskWithSet(BuildSetTask buildSetTask) {
         BuildTask task = mockBuildTask();
-        when(task.getBuildConfigSetRecordId()).thenReturn(buildSetTask.getBuildConfigSetRecord().getId());
+        BuildConfigSetRecord record = buildSetTask.getBuildConfigSetRecord();
+        Integer id = record.getId();
+        when(task.getBuildConfigSetRecordId()).thenReturn(id);
         when(task.getUser()).thenReturn(mock(User.class));
         return task;
     }

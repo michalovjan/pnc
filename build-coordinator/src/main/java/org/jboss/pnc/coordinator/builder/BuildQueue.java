@@ -59,5 +59,5 @@ public interface BuildQueue {
     Collection<BuildTask> getDependencies(BuildTask task);
 
     // mstodo set to integer all over the place
-    Collection<BuildTask> getBuildTasksByConfigSetRecordId(Integer buildSetTaskId);
+    List<BuildTask> getBuildTasksByConfigSetRecordId(Integer buildSetTaskId);
 }

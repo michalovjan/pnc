@@ -60,6 +60,8 @@ public interface BuildCoordinator {
 
     List<BuildTask> getSubmittedBuildTasks();
 
+    List<BuildTask> getSubmittedBuildTasksBySetId(int buildConfigSetRecordId);
+
     void completeBuild(BuildTask buildTask, BuildResult buildResult);
 
     /**

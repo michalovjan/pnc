@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @Alternative
@@ -92,6 +93,15 @@ public class BuildCoordinatorMock implements BuildCoordinator {
 
     public List<BuildTask> getSubmittedBuildTasks() {
         return activeTasks;
+    }
+
+    @Override
+    public List<BuildTask> getSubmittedBuildTasksBySetId(int buildConfigSetRecordId) {
+        return activeTasks.stream()
+                .filter(
+                        buildTask -> buildTask.getBuildConfigSetRecord() != null
+                                && buildTask.getBuildConfigSetRecord().getId().equals(buildConfigSetRecordId))
+                .collect(Collectors.toList());
     }
 
     @Override

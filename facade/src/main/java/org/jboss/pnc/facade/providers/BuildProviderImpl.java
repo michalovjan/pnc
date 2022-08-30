@@ -148,8 +148,6 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
     private BuildConfigurationRevisionMapper buildConfigurationRevisionMapper;
     private BuildMapper buildMapper;
 
-    private final BuildTaskDatastore buildTaskDatastore;
-    private final BuildQueue buildQueue;
     private BuildCoordinator buildCoordinator;
     private SortInfoProducer sortInfoProducer;
     private UserService userService;
@@ -189,8 +187,6 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
         this.userService = userService;
         this.temporaryBuildsCleanerAsyncInvoker = temporaryBuildsCleanerAsyncInvoker;
         this.resultMapper = resultMapper;
-        this.buildTaskDatastore = buildTaskDatastore;
-        this.buildQueue = buildQueue;
     }
 
     @Override
@@ -465,7 +461,7 @@ public class BuildProviderImpl extends AbstractUpdatableProvider<Base32LongID, B
      * @return Running and completed build ids from the Build Group.
      */
     private List<String> getBuildIdsInTheGroup(BuildConfigSetRecord buildConfigSetRecord) {
-        Collection<BuildTask> runningTasks = buildQueue.getBuildTasksByConfigSetRecordId(buildConfigSetRecord.getId());
+        List<BuildTask> runningTasks = buildCoordinator.getSubmittedBuildTasksBySetId(buildConfigSetRecord.getId());
         List<String> runningAndStoredIds = new ArrayList<>();
         runningTasks.stream()
                 .sorted(Comparator.comparing(bt -> bt.getBuildConfigurationAudited().getName()))
