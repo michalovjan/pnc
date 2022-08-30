@@ -17,6 +17,7 @@
  */
 package org.jboss.pnc.coordinator.test;
 
+import org.jboss.pnc.coordinator.builder.SetRecordUpdateJob;
 import org.jboss.pnc.coordinator.test.event.TestCDIBuildSetStatusChangedReceiver;
 import org.jboss.pnc.coordinator.test.event.TestCDIBuildStatusChangedReceiver;
 import org.jboss.pnc.enums.BuildCoordinationStatus;
@@ -80,6 +81,9 @@ public class ProjectBuilder {
 
     @Inject
     TestCDIBuildSetStatusChangedReceiver setStatusChangedReceiver;
+
+    @Inject
+    SetRecordUpdateJob setRecordUpdateJob;
 
     @Before
     public void setUp() {
@@ -238,7 +242,7 @@ public class ProjectBuilder {
         log.debug(
                 "All status updates should be received. Semaphore has {} free entries.",
                 semaphore.availablePermits());
-
+        setRecordUpdateJob.updateConfigSetRecordsStatuses();
         log.info("Waiting to receive all {} build set status updates...", BUILD_SET_STATUS_UPDATES);
         waitForStatusUpdates(BUILD_SET_STATUS_UPDATES, buildSetSemaphore, "build set task: " + buildSetTask);
         log.debug(
