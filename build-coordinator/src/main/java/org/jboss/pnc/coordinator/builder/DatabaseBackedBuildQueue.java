@@ -64,6 +64,7 @@ import java.util.function.Consumer;
 public class DatabaseBackedBuildQueue implements BuildQueue {
     private static final Logger log = LoggerFactory.getLogger(DatabaseBackedBuildQueue.class);
 
+    private static final Set<BuildCoordinationStatus> BUILDING_STATE = BuildCoordinationStatus.buildingState();
     private static final Set<BuildCoordinationStatus> IN_PROGRESS_STATES = BuildCoordinationStatus.inProgressStates();
     private static final Set<BuildCoordinationStatus> SUCCESSFUL_FINISH_STATES = BuildCoordinationStatus
             .successfulFinishStates();
@@ -173,13 +174,17 @@ public class DatabaseBackedBuildQueue implements BuildQueue {
                     }
                 }
             } else {
-                log.debug("Got a task to start with id {}, let's try to lock it for starting", task.get().getId());
-                BuildTask grabbedTask = datastore.grabTask(task.get());
-                if (grabbedTask != null) {
-                    log.debug("Successfully locked task with id {} to start", task.get().getId());
+                if (datastore.countTasksInState(BUILDING_STATE) > systemConfig.getCoordinatorMaxConcurrentBuilds()) {
+                    log.trace("Got an ENQUEUED task but there is no room for building.");
+                } else {
+                    log.debug("Got a task to start with id {}, let's try to lock it for starting", task.get().getId());
+                    BuildTask grabbedTask = datastore.grabTask(task.get());
+                    if (grabbedTask != null) {
+                        log.debug("Successfully locked task with id {} to start", task.get().getId());
 
-                    return grabbedTask;
-                } // else take the next task
+                        return grabbedTask;
+                    } // else take the next task
+                }
             }
         }
 

@@ -174,4 +174,8 @@ public enum BuildCoordinationStatus {
 
         return result;
     }
+
+    public static EnumSet<BuildCoordinationStatus> buildingState() {
+        return EnumSet.of(BUILDING);
+    }
 }
