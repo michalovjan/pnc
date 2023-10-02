@@ -1,0 +1,43 @@
+[
+  {
+  "id": "690d4920-beed-4e6e-a0cd-967b046db6ee",
+  "name": "pnc-users-rex-user",
+  "composite": false,
+  "clientRole": false,
+  "containerId": "newcastle-testcontainer",
+  "attributes": {}
+},
+  {
+    "id": "73cf72eb-a4a1-416e-9fd5-6417196155b2",
+    "name": "pnc-users-admin",
+    "description": "Admin users of PNC",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "newcastle-testcontainer",
+    "attributes": {}
+  },
+  {
+    "id": "c8c78a88-38f2-4d3d-b919-ca36f2323b3a",
+    "name": "system-user",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "newcastle-testcontainer",
+    "attributes": {}
+  },
+  {
+    "id": "c94458da-1409-4942-8a69-d42d26f03558",
+    "name": "user",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "newcastle-testcontainer",
+    "attributes": {}
+  },
+  {
+    "id": "e10990bc-3995-4e24-9132-97dd14c915e0",
+    "name": "pnc-users-rex-admin",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "newcastle-testcontainer",
+    "attributes": {}
+  }
+]

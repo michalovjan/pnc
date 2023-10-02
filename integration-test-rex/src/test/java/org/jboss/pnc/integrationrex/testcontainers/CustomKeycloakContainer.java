@@ -24,10 +24,12 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.RealmRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -86,6 +88,15 @@ public class CustomKeycloakContainer extends KeycloakContainer {
                         resourceStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(importFile);
                     }
                     kcAdmin.realms().create(objectMapper.readValue(resourceStream, RealmRepresentation.class));
+                    InputStream role = this.getClass().getResourceAsStream("default-role.json");
+                    if (role == null) {
+                        role = Thread.currentThread().getContextClassLoader().getResourceAsStream("default-role.json");
+                    }
+                    RoleRepresentation[] compositeRoles = objectMapper.readValue(role, RoleRepresentation[].class);
+                    kcAdmin.realm("newcastle-testcontainer")
+                            .roles()
+                            .get("default-roles-newcastle-testcontainer")
+                            .addComposites(Arrays.asList(compositeRoles));
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
